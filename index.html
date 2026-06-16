@@ -191,6 +191,13 @@
             animation: none !important;
         }
 
+        /* Исправленная анимация с жестким цветом вместо переменных */
+        @keyframes sindraPulse {
+            0% { transform: scale(0.94); box-shadow: 0 0 8px #2ec4b6; }
+            50% { transform: scale(1.06); box-shadow: 0 0 20px #2ec4b6; }
+            100% { transform: scale(0.94); box-shadow: 0 0 8px #2ec4b6; }
+        }
+
         .bar-container {
             width: 100%;
             background: #222;
@@ -247,7 +254,7 @@
                 <button id="voice-toggle-btn" style="margin: 0; padding: 6px 12px; font-size: 12px; background: #2f3e46; color: white;" onclick="toggleVoice()">🔊 ГОЛОС: ВКЛ</button>
             </div>
 
-            <!-- Персонаж главного меню (С фиксом 404 и масштаба) -->
+            <!-- Персонаж главного меню -->
             <div class="character-stage" style="max-width: 460px; margin: 0 auto;">
                 <img id="sindra-img-menu" class="sindra-avatar" src="sindra_menu.png" alt="Синдра" style="width: 440px; max-width: 100%;">
                 <div class="rpg-speech-bubble" style="border-color: var(--accent-color);">
@@ -383,7 +390,6 @@
                 <div class="content-box">
                     <div style="text-align: left; height: 35px; display: flex; justify-content: space-between; align-items: center;">
                         <span id="page-indicator" style="color: #85929e; font-size: 13px;">Видео переключается каждую минуту автоматически</span>
-                        <!-- КНОПКА ДЛЯ РУЧНОГО ПРОПУСКА ВИДЕО -->
                         <button id="skip-video-btn" style="margin: 0; padding: 4px 10px; font-size: 12px; background: #9d4edd; color: white; font-weight: bold; border-radius: 4px; display: none;" onclick="skipVideo()">⏭️ Сменить видео</button>
                     </div>
                     
@@ -439,7 +445,7 @@
                 <div class="character-stage">
                     <img id="sindra-img-denied" class="sindra-avatar" src="sindra_idle.png" alt="Синдра">
                     <div class="rpg-speech-bubble" style="border-color: var(--warning-color);">
-                        <div class="rpg-speaker-name" style="color: var(--warning-color);">🐉 Синдра</div>
+                        <div class="rpg-speaker-name">🐉 Синдра</div>
                         <div class="rpg-text" id="rpg-dialogue-text-denied">...</div>
                     </div>
                 </div>
@@ -524,6 +530,7 @@
     <script>
         const BAN_HOURS = 6;
         
+        // Личности Синдры на разных уровнях сложности
         const goPhrasesEasy = [
             "Ты отлично справляешься. Начинаем медленный разгон, руки работают плавно.",
             "Хороший темп, не торопись. Я верю, что ты сможешь пройти этот уровень.",
@@ -568,6 +575,7 @@
             "Какая жалкая разрядка! Твой прибор сработал как неисправный огнетушитель — пшик, и всё. Ты даже не заслуживаешь смотреть на моих соплеменниц. Сиди в углу и молись на цифры, куколд."
         ];
 
+        // Горячие стабильные CDN ссылки Unsplash под пейзажи Скайрима (Горы, сосны, туман)
         const distractingImages = [
             "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600", 
             "https://images.unsplash.com/photo-1448375240586-882707db888b?w=600", 
@@ -1067,11 +1075,10 @@
             }
         }
 
-        // РУЧНОЙ ПРОПУСК ТЕКУЩЕГО ВИДЕО (Мгновенный свап)
         function skipVideo() {
             if (!isGoPhase) return;
             playRandomVideo();
-            startVideoRotation(); // Сбрасываем таймер автосмены, чтобы не было наложения
+            startVideoRotation(); 
         }
 
         function showDistractingContent() {
@@ -1081,7 +1088,7 @@
             
             videoEl.pause();
             videoEl.style.display = 'none';
-            document.getElementById('skip-video-btn').style.display = 'none'; // Прячем кнопку пропуска
+            document.getElementById('skip-video-btn').style.display = 'none'; 
 
             const randImg = distractingImages[Math.floor(Math.random() * distractingImages.length)];
             distractImg.src = randImg;
@@ -1100,7 +1107,7 @@
             videoEl.style.display = 'block';
             videoEl.play();
             
-            document.getElementById('skip-video-btn').style.display = 'block'; // Показываем кнопку пропуска
+            document.getElementById('skip-video-btn').style.display = 'block'; 
 
             document.getElementById('extend-container').style.display = 'none';
 
@@ -1155,7 +1162,11 @@
                 const currentSpeed = speeds[Math.floor(Math.random() * speeds.length)];
                 tempoText.innerText = `Темп: ${currentSpeed.name}`;
                 
-                circle.style.animation = `pulse ${currentSpeed.dur} infinite ease-in-out`;
+                // Трюк с offsetWidth для сброса анимации круга
+                circle.style.animation = 'none';
+                void circle.offsetWidth; 
+                circle.style.animation = `sindraPulse ${currentSpeed.dur} infinite ease-in-out`;
+
                 slider.style.animation = `slideUpDown ${currentSpeed.dur} infinite ease-in-out`;
                 
                 showVideoContent(); 
@@ -1274,7 +1285,7 @@
         function endGameVictory() {
             clearAllIntervals();
             document.getElementById('gameplay-video').pause();
-            document.getElementById('skip-video-btn').style.display = 'none'; // Прячем кнопку пропуска
+            document.getElementById('skip-video-btn').style.display = 'none'; 
             
             const roll = Math.floor(Math.random() * 100) + 1;
             
@@ -1338,7 +1349,7 @@
             const startX = canvas.width / 2;
             const startY = canvas.height;
             
-            // Сперма теперь летит строго в центр экрана (погрешность до 15% от центра)
+            // Сперма летит строго в центр экрана (погрешность до 15% от центра)
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
             const targetX = centerX + (Math.random() * (canvas.width * 0.3) - (canvas.width * 0.15));
