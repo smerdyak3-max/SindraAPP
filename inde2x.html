@@ -1,0 +1,1458 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Синдра: Эджинг-Марафон v6.0-Alpha (Skyrim Edition)</title>
+    <style>
+        :root {
+            --bg-color: #0b0c10;
+            --container-bg: #1f2833;
+            --accent-color: #00f5d4;
+            --text-color: #c5c6c7;
+            --warning-color: #ff4d6d;
+            --go-color: #2ec4b6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            background-color: var(--container-bg);
+            border: 2px solid #2f3e46;
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%;
+            max-width: 1200px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            box-sizing: border-box;
+        }
+
+        .screen { display: none; text-align: center; }
+        .screen.active { display: block; }
+
+        h1, h2, h3 {
+            color: var(--accent-color);
+            text-shadow: 0 0 10px rgba(0, 245, 212, 0.3);
+            margin-top: 0;
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.1s, opacity 0.3s;
+        }
+        button:hover { opacity: 0.9; }
+        button:active { transform: scale(0.98); }
+
+        .difficulty-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 25px 0;
+            flex-wrap: wrap;
+        }
+
+        .diff-card {
+            background: #0b0c10;
+            border: 2px solid #2f3e46;
+            border-radius: 10px;
+            padding: 20px;
+            width: 240px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .diff-card:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 245, 212, 0.2);
+        }
+        .diff-card.selected {
+            border-color: var(--accent-color);
+            background: rgba(0, 245, 212, 0.05);
+        }
+
+        .game-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 950px) {
+            .game-layout { grid-template-columns: 1fr; }
+        }
+
+        .dashboard {
+            background: #0b0c10;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #2f3e46;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .character-stage {
+            position: relative;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 10px;
+        }
+
+        .sindra-avatar {
+            width: 260px;
+            height: auto;
+            display: block;
+            image-rendering: -webkit-optimize-contrast;
+            transform-origin: bottom center;
+        }
+
+        .sindra-avatar.jump {
+            animation: vtuberJump 0.4s ease-out;
+        }
+
+        @keyframes vtuberJump {
+            0% { transform: translateY(0) scaleY(1); }
+            30% { transform: translateY(-15px) scaleY(1.05); }
+            60% { transform: translateY(2px) scaleY(0.97); }
+            100% { transform: translateY(0) scaleY(1); }
+        }
+
+        .rpg-speech-bubble {
+            position: relative;
+            background: #1f2833;
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+            width: 90%;
+            box-sizing: border-box;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+            text-align: left;
+        }
+
+        .rpg-speech-bubble::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 0 10px 10px 10px;
+            border-style: solid;
+            border-color: transparent transparent var(--accent-color) transparent;
+        }
+
+        .rpg-speaker-name {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-color);
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .rpg-text {
+            font-size: 13px;
+            line-height: 1.4;
+            color: #fff;
+            min-height: 38px;
+        }
+
+        .tempo-circle {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background-color: var(--go-color);
+            margin: 5px auto;
+            box-shadow: 0 0 15px var(--go-color);
+            transition: background-color 0.4s, box-shadow 0.4s;
+        }
+        .tempo-circle.stop {
+            background-color: var(--warning-color);
+            box-shadow: 0 0 15px var(--warning-color);
+            animation: none !important;
+        }
+
+        .bar-container {
+            width: 100%;
+            background: #222;
+            border-radius: 6px;
+            height: 16px;
+            overflow: hidden;
+            border: 1px solid #444;
+            position: relative;
+        }
+        .bar-fill {
+            height: 100%;
+            width: 100%;
+            background-color: var(--go-color);
+            transition: width 0.1s linear;
+        }
+        .bar-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: #fff;
+            line-height: 16px;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        .content-box { display: flex; flex-direction: column; gap: 10px; }
+        
+        .viewer-box {
+            width: 100%;
+            height: 580px;
+            border: 2px solid #2f3e46;
+            border-radius: 8px;
+            background-color: #000;
+            overflow: hidden;
+            position: relative;
+        }
+
+        @keyframes slideUpDown {
+            0% { bottom: 0%; }
+            50% { bottom: calc(100% - 24px); }
+            100% { bottom: 0%; }
+        }
+    </style>
+</head>
+<body onclick="initAudio()">
+
+    <div class="container">
+        
+        <!-- МЕНЮ -->
+        <div id="screen-menu" class="screen active">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 600px; margin: 0 auto 10px auto;">
+                <span style="font-size: 12px; color: #85929e;">v6.0-Alpha Skyrim Edition</span>
+                <button id="voice-toggle-btn" style="margin: 0; padding: 6px 12px; font-size: 12px; background: #2f3e46; color: white;" onclick="toggleVoice()">🔊 ГОЛОС: ВКЛ</button>
+            </div>
+
+            <!-- Персонаж главного меню (С фиксом 404 и масштаба) -->
+            <div class="character-stage" style="max-width: 460px; margin: 0 auto;">
+                <img id="sindra-img-menu" class="sindra-avatar" src="sindra_menu.png" alt="Синдра" style="width: 440px; max-width: 100%;">
+                <div class="rpg-speech-bubble" style="border-color: var(--accent-color);">
+                    <div class="rpg-speaker-name">🐉 Синдра</div>
+                    <div class="rpg-text" id="rpg-dialogue-text-menu">Заходи, путник. Выбери уровень измора, и я лично проверю твою волю...</div>
+                </div>
+            </div>
+
+            <!-- НАУЧНО-ОБРАЗОВАТЕЛЬНЫЙ СПОЙЛЕР ДЛЯ МЕНЮ -->
+            <div style="margin-top: 15px;">
+                <button onclick="toggleEducationPanel()" style="background: #2ec4b6; color: black; font-size: 13px; padding: 8px 16px; font-weight: bold; border-radius: 6px;">
+                    📚 Что такое эджинг? Мнение врачей и польза тренажера
+                </button>
+                <div id="education-panel" style="display: none; background: #0b0c10; border: 1px solid #2f3e46; border-radius: 8px; padding: 20px; text-align: left; margin: 15px auto 0 auto; max-width: 700px; line-height: 1.5; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+                    <h3 style="color: var(--accent-color); border-bottom: 1px solid #2f3e46; padding-bottom: 8px; margin-top: 0; font-size: 18px;">💡 НАУЧНЫЙ БАЗИС И СУТЬ ТРЕНИРОВКИ</h3>
+                    <p style="font-size: 13px; color: #c5c6c7;">
+                        <strong>Эджинг (от англ. edge — край)</strong> — это техника удержания сексуального возбуждения на пике (90–95% от критического уровня) без перехода за грань эякуляции [1]. 
+                    </p>
+                    <p style="font-size: 13px; color: #c5c6c7;">
+                        <strong>Как данный тренажер помогает повысить выносливость:</strong>
+                    </p>
+                    <ul style="font-size: 13px; color: #aaa; padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+                        <li><strong>1. Развитие контроля PC-мышцы (лобково-копчиковой):</strong> На резких фазах «СТОП» вы рефлекторно сжимаете мышцы тазового дна, чтобы подавить выброс крови, что физически укрепляет их и тренирует рефлекторный зажим [1].</li>
+                        <li><strong>2. Проприоцепция (чувство тела):</strong> Постоянные перепады скоростей учат вашу нервную систему тонко улавливать «точку невозврата» до того, как физиологически станет слишком поздно.</li>
+                        <li><strong>3. Психологическая закалка:</strong> Резкая остановка под издевательские реплики Синдры учит мозг быстро перенаправлять сигналы стресса и снижать избыточную дофаминовую стимуляцию.</li>
+                    </ul>
+                    <p style="font-size: 12px; color: #85929e; margin-top: 10px; border-top: 1px solid #2f3e46; padding-top: 8px;">
+                        <em>Мнение андрологов:</em> Разумный эджинг служит отличной профилактикой синдрома преждевременного семяизвержения и застойных явлений таза [1]. Главное — избегать затягивания сессии более чем на 35–40 минут во избежание перегрузки нервной системы [1].
+                    </p>
+                </div>
+            </div>
+
+            <!-- НАСТРОЙКИ API -->
+            <div style="background: #0b0c10; border: 2px solid #2f3e46; border-radius: 8px; padding: 15px; margin: 20px auto; max-width: 600px; text-align: left;">
+                <h4 style="color: var(--accent-color); margin-top: 0; margin-bottom: 8px;">⚙️ НАСТРОЙКИ ПОДКЛЮЧЕНИЯ (Rule34 API)</h4>
+                <p style="font-size: 11px; color: #85929e; margin: 0 0 12px 0; line-height: 1.4;">
+                    Rule34 требует авторизацию для API. Войдите на <a href="https://rule34.xxx" target="_blank" style="color:var(--accent-color);">rule34.xxx</a>, откройте <a href="https://rule34.xxx/index.php?page=account&s=options" target="_blank" style="color:var(--accent-color);">Account -> Options</a>, нажмите Save и скопируйте ключи:
+                </p>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 150px;">
+                        <label style="font-size: 11px; color: #85929e; display: block; margin-bottom: 4px;">User ID</label>
+                        <input type="text" id="api-userid" oninput="saveApiSettings()" placeholder="Например: 123456" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #2f3e46; background: #1f2833; color: white; box-sizing: border-box; font-size: 13px;">
+                    </div>
+                    <div style="flex: 2; min-width: 200px;">
+                        <label style="font-size: 11px; color: #85929e; display: block; margin-bottom: 4px;">API Key (password hash)</label>
+                        <input type="password" id="api-key" oninput="saveApiSettings()" placeholder="Ваш длинный хэш-ключ..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #2f3e46; background: #1f2833; color: white; box-sizing: border-box; font-size: 13px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- ТИП ИНДИКАТОРА -->
+            <div style="margin: 15px auto; max-width: 600px; text-align: left; background: #0b0c10; padding: 12px; border: 1px solid #2f3e46; border-radius: 8px;">
+                <label style="font-size: 12px; color: #85929e; display: block; margin-bottom: 6px; font-weight: bold;">🎯 ТИП ИНДИКАТОРА ТЕМПА ФРИКЦИЙ:</label>
+                <select id="indicator-type" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #2f3e46; background: #1f2833; color: white; font-size: 13px;">
+                    <option value="circle">Классический пульсирующий круг</option>
+                    <option value="slider">Слайдер фрикций (кулак скользит по пенису)</option>
+                </select>
+            </div>
+
+            <div class="difficulty-container">
+                <div class="diff-card" onclick="selectDifficulty('easy', 5, this)">
+                    <h3 style="color: #2ec4b6; margin-bottom: 8px;">🟢 СЛАБАК</h3>
+                    <p style="font-size: 13px; margin: 0; color: #aaa;">
+                        <strong>Время: 5 минут.</strong><br>Нежный образ Синдры. Длинные паузы для отдыха, короткие фазы фрикций.
+                    </p>
+                </div>
+                <div class="diff-card" onclick="selectDifficulty('medium', 15, this)">
+                    <h3 style="color: #ff9f1c; margin-bottom: 8px;">🟡 БОГАТЫРЬ</h3>
+                    <p style="font-size: 13px; margin: 0; color: #aaa;">
+                        <strong>Время: 15 минут.</strong><br>Умеренный темп. Обычный дразнящий образ дракоши.
+                    </p>
+                </div>
+                <div class="diff-card" onclick="selectDifficulty('hard', 30, this)">
+                    <h3 style="color: #ff4d6d; margin-bottom: 8px;">🔴 ГУРУ СЕКСА</h3>
+                    <p style="font-size: 13px; margin: 0; color: #aaa;">
+                        <strong>Время: 30 минут.</strong><br>Жестокое доминирование. Сумасшедший темп и секундные передышки.
+                    </p>
+                </div>
+            </div>
+
+            <button id="start-btn" style="opacity: 0.5; pointer-events: none;" onclick="startGame()">Укажите API ключи и выберите тип эджа</button>
+        </div>
+
+        <!-- ИГРОВОЙ ПРОЦЕСС -->
+        <div id="screen-game" class="screen">
+            <div class="game-layout">
+                
+                <div class="dashboard">
+                    <div class="character-stage">
+                        <img id="sindra-img" class="sindra-avatar" src="sindra_idle.png" alt="Синдра">
+                        
+                        <div class="rpg-speech-bubble">
+                            <div class="rpg-speaker-name">🐉 Синдра</div>
+                            <div class="rpg-text" id="rpg-dialogue-text">Симулятор запущен. Жду твоих страданий...</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 5px;">
+                        <h3 style="margin: 0; font-size: 12px; color: #85929e;">ОСТАЛОСЬ ДО НАГРАДЫ</h3>
+                        <div id="marathon-timer" style="font-size: 30px; font-weight: bold; color: #fff;">00:00</div>
+                    </div>
+
+                    <div style="width: 100%; text-align: center; min-height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                        <div id="status-label" style="font-weight: bold; font-size: 18px; color: var(--go-color); text-transform: uppercase; margin-bottom: 5px;">ДРОЧИ</div>
+                        
+                        <div id="tempo-circle" class="tempo-circle"></div>
+                        
+                        <div id="friction-guide-container" style="display: none; width: 70px; height: 140px; background: #0b0c10; border: 1px solid #2f3e46; border-radius: 8px; position: relative; overflow: hidden; justify-content: center; align-items: flex-end; padding-bottom: 5px; box-sizing: border-box;">
+                            <div style="width: 10px; height: 120px; background: var(--go-color); border-radius: 5px; position: relative;">
+                                <div id="friction-slider" style="width: 20px; height: 20px; background: #fff; border: 2px solid #000; border-radius: 4px; position: absolute; left: -5px; bottom: 0;"></div>
+                            </div>
+                        </div>
+
+                        <div id="tempo-text" style="font-size: 11px; color: #85929e; margin-top: 5px;">Темп: Средний</div>
+                    </div>
+
+                    <div style="width: 100%;">
+                        <div class="bar-container">
+                            <div class="bar-text" id="phase-timer-text">00 сек</div>
+                            <div id="phase-bar" class="bar-fill"></div>
+                        </div>
+                    </div>
+
+                    <div id="extend-container" style="width: 100%; display: none; flex-direction: column; gap: 4px; margin-top: 5px;">
+                        <div id="permission-chance-text" style="font-size: 11px; color: var(--accent-color); text-align: center; font-weight: bold;">Шанс разрешения: 100%</div>
+                        <button style="background: #9d4edd; color: white; width: 100%; margin: 0; padding: 10px; font-weight: bold; font-size: 13px; border-radius: 4px;" onclick="extendStopPhase()">🛡️ ПРОДЛИТЬ ПАУЗУ (+15 сек)</button>
+                    </div>
+
+                    <button style="background: var(--warning-color); color: white; width: 100%; margin-top: 5px; padding: 11px; font-weight: bold;" onclick="registerFail()">Я СОРВАЛСЯ</button>
+                    <button style="background: gold; color: black; width: 100%; margin-top: 0; padding: 8px; font-size: 12px; font-weight: bold;" onclick="endGameVictory()">ХАКЕР: ТЕСТ ПОБЕДЫ</button>
+                </div>
+
+                <div class="content-box">
+                    <div style="text-align: left; height: 35px; display: flex; justify-content: space-between; align-items: center;">
+                        <span id="page-indicator" style="color: #85929e; font-size: 13px;">Видео переключается каждую минуту автоматически</span>
+                        <!-- КНОПКА ДЛЯ РУЧНОГО ПРОПУСКА ВИДЕО -->
+                        <button id="skip-video-btn" style="margin: 0; padding: 4px 10px; font-size: 12px; background: #9d4edd; color: white; font-weight: bold; border-radius: 4px; display: none;" onclick="skipVideo()">⏭️ Сменить видео</button>
+                    </div>
+                    
+                    <div class="viewer-box">
+                        <video id="gameplay-video" style="width: 100%; height: 100%; object-fit: contain; display: none;" autoplay loop muted controls></video>
+                        
+                        <div id="distracting-image-container" style="width: 100%; height: 100%; display: none; background: #0b0c10; justify-content: center; align-items: center; flex-direction: column; padding: 20px; box-sizing: border-box;">
+                            <img id="distracting-img" src="" style="max-width: 90%; max-height: 80%; border-radius: 8px; border: 2px solid var(--accent-color); object-fit: contain;">
+                            <div style="color: var(--accent-color); font-weight: bold; margin-top: 15px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 8px rgba(0,245,212,0.3);">🌲 ОСТАНОВИСЬ. СДЕЛАЙ ВДОХ И ПОСМОТРИ НА КРАСИВЫЙ СКАЙРИМСКИЙ ПЕЙЗАЖ 🌲</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ЭКРАН НАКАЗАНИЯ -->
+        <div id="screen-lockout" class="screen">
+            <h2 style="color: var(--warning-color); margin-bottom: 20px;">🔒 БЛОКИРОВКА СИМУЛЯТОРА</h2>
+            
+            <div style="max-width: 400px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 15px;">
+                <div class="character-stage">
+                    <img id="sindra-img-lockout" class="sindra-avatar" src="sindra_idle.png" alt="Синдра">
+                    
+                    <div class="rpg-speech-bubble" style="border-color: var(--warning-color);">
+                        <div class="rpg-speaker-name">🐉 Синдра</div>
+                        <div class="rpg-text" id="rpg-dialogue-text-lockout">...</div>
+                    </div>
+                </div>
+
+                <!-- ВЫЗОВ НА ИСКУПЛЕНИЕ ИНТЕРАКТИВНЫЙ -->
+                <div id="challenge-box" style="background: #111; border: 1px dashed var(--warning-color); padding: 15px; border-radius: 8px; width: 100%; box-sizing: border-box; text-align: left;">
+                    <h4 style="color: var(--warning-color); margin-top:0; margin-bottom: 5px;">🏋️ ВЫЗОВ НА ИСКУПЛЕНИЕ</h4>
+                    <p id="challenge-text" style="font-size: 12px; margin: 0 0 10px 0; line-height: 1.4; color: #aaa;">Синдра готова сократить время блокировки, если ты выполнишь её физический приказ.</p>
+                    <button id="accept-challenge-btn" style="background: var(--warning-color); color: white; padding: 6px 12px; font-size: 12px; margin: 0;" onclick="generateChallenge()">🐉 Просить о пощаде</button>
+                    
+                    <div id="active-challenge-container" style="display: none; flex-direction: column; gap: 8px;">
+                        <div id="active-challenge-desc" style="font-size: 13px; font-weight: bold; color: #fff; line-height: 1.4;"></div>
+                        <button style="background: var(--go-color); color: black; padding: 8px; font-size: 12px; font-weight: bold; margin: 0; width: 100%;" onclick="completeChallenge()">💪 Я ВЫПОЛНИЛ ПРИКАЗ!</button>
+                    </div>
+                </div>
+
+                <div style="background: #111; padding: 15px 30px; border-radius: 8px; width: 100%; box-sizing: border-box; border: 1px dashed var(--warning-color); text-align: center;">
+                    <span id="countdown-timer" style="font-size: 28px; font-weight: bold; color: var(--warning-color);">00:00:00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН ОТКАЗА (DENIED ORGASM) -->
+        <div id="screen-denied" class="screen">
+            <h2 style="color: var(--warning-color); font-size: 32px; text-shadow: 0 0 15px rgba(255,77,109,0.4); margin-bottom: 15px;">❌ ОРГАЗМ ЗАПРЕЩЕН! (RUINED ORGASM)</h2>
+            <div style="max-width: 450px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 15px;">
+                <div class="character-stage">
+                    <img id="sindra-img-denied" class="sindra-avatar" src="sindra_idle.png" alt="Синдра">
+                    <div class="rpg-speech-bubble" style="border-color: var(--warning-color);">
+                        <div class="rpg-speaker-name" style="color: var(--warning-color);">🐉 Синдра</div>
+                        <div class="rpg-text" id="rpg-dialogue-text-denied">...</div>
+                    </div>
+                </div>
+                <div style="background: #111; padding: 15px 30px; border-radius: 8px; width: 100%; box-sizing: border-box; border: 1px dashed var(--warning-color); text-align: center;">
+                    <span id="denied-clicks-info" style="font-size: 14px; font-weight: bold; color: var(--warning-color); display: block; line-height: 1.4;"></span>
+                </div>
+
+                <!-- СОВЕТЫ СЕКСОЛОГОВ ПРИ ОБЛОМЕ (ДЛЯ ДЕНИЕД ЭКРАНА) -->
+                <button onclick="toggleDeniedAdvicePanel()" style="background: var(--warning-color); color: white; margin-top: 10px; font-size: 13px; padding: 8px 16px; font-weight: bold; border-radius: 6px;">
+                    📋 Как снять застойную боль при запрете (Советы врачей)
+                </button>
+                <div id="denied-advice-panel" style="display: none; background: #0b0c10; border: 1px solid #2f3e46; border-radius: 8px; padding: 15px; text-align: left; margin-top: 10px; max-width: 400px; line-height: 1.5; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+                    <h4 style="color: var(--warning-color); margin-top: 0; margin-bottom: 8px; font-size: 14px; text-transform: uppercase;">🩸 СИНДРОМ ТЯЖЕЛОГО ТАЗА («СИНИЕ ЯИЧКИ»)</h4>
+                    <p style="font-size: 11px; color: #85929e; margin-bottom: 10px;">
+                        Внезапное прекращение стимуляции на пике эджинга без разрядки оставляет артериальную кровь зажатой в сосудах малого таза и придатков яичек. Это вызывает ноющую давящую боль. Врачи советуют:
+                    </p>
+                    <ul style="font-size: 11px; color: #c5c6c7; padding-left: 15px; display: flex; flex-direction: column; gap: 8px; margin: 0;">
+                        <li><strong>1. Прохладный компресс:</strong> Слегка прохладный душ спазмирует сосуды малого таза, снижает приток крови и существенно уменьшает тупую ноющую боль в течение 10 минут.</li>
+                        <li><strong>2. Кардио-активность:</strong> Сделайте 30 легких приседаний или быстро походите. Мозг перенаправит кровь из таза к работающим мышцам ног, облегчая застой в мошонке.</li>
+                        <li><strong>3. Отвлечение и дыхание:</strong> Лягте на спину, положите руку на живот и делайте глубокие вдохи. Боль полностью утихнет самостоятельно через 1-2 часа.</li>
+                        <li><strong>4. Категорическое нет судорожным попыткам:</strong> Не пытайтесь быстро стимулировать себя снова прямо сейчас — это лишь усугубит отек сосудов и усилит дискомфорт.</li>
+                    </ul>
+                </div>
+
+                <button style="background: var(--warning-color); color: white;" onclick="registerFail()">ОСТУДИТЬСЯ (БАН 6 ЧАСОВ)</button>
+            </div>
+        </div>
+
+        <!-- ПОБЕДА -->
+        <div id="screen-victory" class="screen">
+            <h2 style="color: #00f5d4; font-size: 32px; text-shadow: 0 0 15px rgba(0,245,212,0.4);">🏆 МАРАФОН ЗАВЕРШЕН С ПОБЕДОЙ!</h2>
+            <p id="victory-desc" style="font-size: 16px; color: #aaa; margin-bottom: 5px;"></p>
+            <h1 style="color: #ff4d6d; font-size: 36px; margin: 10px 0; text-shadow: 0 0 10px rgba(255,77,109,0.5);">💦 КОНЧАТЬ СЮДА! 💦</h1>
+            
+            <div class="viewer-box" style="height: 580px; margin-top: 15px; position: relative;">
+                <!-- Абсолютно чистая картинка -->
+                <img id="victory-image" style="width: 100%; height: 100%; object-fit: contain; display: block;" src="" alt="Твоя награда">
+                <canvas id="semen-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none;"></canvas>
+            </div>
+
+            <!-- ИНТЕРАКТИВНОЕ СЕМЯИЗВЕРЖЕНИЕ -->
+            <div id="victory-controls" style="margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; max-width: 600px; margin-left: auto; margin-right: auto;">
+                <div id="victory-shots-count" style="font-size: 14px; font-weight: bold; color: var(--accent-color);">Струй выпущено: 0 / 5</div>
+                <button id="shoot-semen-btn" style="background: #fff; color: #000; font-size: 18px; padding: 12px 24px; font-weight: bold; width: 100%; border-radius: 8px; box-shadow: 0 0 15px #fff;" onclick="shootSemen()">💦 ВЫСТРЕЛ СЕМЕНЕМ (КОНЧИТЬ) 💦</button>
+                <button id="victory-exit-btn" style="display: none; background: var(--accent-color); color: #000; font-size: 16px; padding: 12px 24px; font-weight: bold; width: 100%;" onclick="returnToMenu()">🐉 Вернуться в меню</button>
+            </div>
+
+            <button onclick="toggleAdvicePanel()" style="background: #9d4edd; color: white; margin-top: 15px; font-size: 14px; padding: 10px 20px; border-radius: 6px; font-weight: bold;">
+                📋 Что делать дальше? Как не впасть в апатию (Советы сексологов)
+            </button>
+
+            <div id="advice-panel" style="display: none; background: #0b0c10; border: 1px solid #2f3e46; border-radius: 8px; padding: 20px; text-align: left; margin-top: 15px; max-width: 800px; margin-left: auto; margin-right: auto; line-height: 1.5; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+                <h3 style="color: var(--accent-color); border-bottom: 1px solid #2f3e46; padding-bottom: 8px; margin-top: 0; font-size: 18px;">🐉 ПОСЛЕМАРАФОНСКАЯ РЕАБИЛИТАЦИЯ ОТ СИНДРЫ</h3>
+                <ol style="font-size: 13px; color: #c5c6c7; padding-left: 20px; display: flex; flex-direction: column; gap: 12px; margin: 0;">
+                    <li>
+                        <strong style="color: var(--warning-color);">1. Быстрая гигиена и утилизация (Душ vs Ванная):</strong><br>
+                        * <strong>Если вы в душе (КРИТИЧЕСКАЯ ОШИБКА):</strong> Никогда не смывайте сперму горячей водой! Сперма состоит из белка, который сворачивается при температуре выше 40°C. Горячая вода превратит её в липкие, резиновые хлопья, которые забьют слив и сифон (что приведет к засору и тяжелому запаху). <strong>Смывать сперму в душе нужно строго холодной водой!</strong><br>
+                        * <strong>Если вы в комнате:</strong> Используйте бумажные сухие или влажные салфетки, утилизируйте их в мусорное ведро. Не вытирайте о постельное белье — белок быстро засыхает, портит ткань и развивает бактериальную среду. После этого сразу вымойте руки с мылом.
+                    </li>
+                    <li>
+                        <strong style="color: var(--accent-color);">2. Восстановление водного баланса (Гидратация):</strong><br>
+                        Выпейте большой стакан прохладной чистой воды. Сексуальная нагрузка ускоряет дыхание и метаболизм, вызывая микро-обезвоживание. Вода стабилизирует кровоток и разгружает сосуды головного мозга.
+                    </li>
+                    <li>
+                        <strong style="color: var(--go-color);">3. Дофаминовый детокс (Никаких быстрых дофаминов первые 2 часа!):</strong><br>
+                        <strong>Самое важное правило:</strong> не листайте соцсети, не играйте в видеоигры и не ешьте вредную пищу сразу после финала. Дайте истощенным дофаминовым рецепторам мозга плавно прийти в норму. Займитесь скучной рутиной: приберитесь на столе, помойте посуду или выйдите на прогулку.
+                    </li>
+                    <li>
+                        <strong style="color: #ff9f1c;">4. Профилактика послеоргазменного уныния:</strong><br>
+                        Резкий гормональный спад может вызывать грусть (выброс пролактина). Не ругайте себя. Это естественная химия желез. Лягте поудобнее, сделайте несколько глубоких вдохов диафрагмой (животом) и позвольте телу расслабиться.
+                    </li>
+                    <li>
+                        <strong style="color: #9d4edd;">5. Снятие мышечного напряжения таза (Венозный отток):</strong><br>
+                        Кровь долго застаивалась в малом тазу. Чтобы восстановить кровообращение и снять спазмы мышц, лягте на спину и положите ноги на стену (или высокую подушку) выше уровня таза на 5 минут. Это улучшит венозный отток.
+                    </li>
+                </ol>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const BAN_HOURS = 6;
+        
+        const goPhrasesEasy = [
+            "Ты отлично справляешься. Начинаем медленный разгон, руки работают плавно.",
+            "Хороший темп, не торопись. Я верю, что ты сможешь пройти этот уровень.",
+            "Держи этот легкий ритм. Руки работают мягко, смазки не жалей."
+        ];
+        const stopPhrasesEasy = [
+            "Замри, мой милый. Дыши ровнее, я подожду. Ты отлично сдерживаешься.",
+            "Руки прочь, хороший мой. Это всего лишь короткая пауза, ты сможешь переждать её."
+        ];
+
+        const goPhrasesMedium = [
+            "Начинаем мерный разгон. Вливайся в темп и не вздумай ускоряться.",
+            "Держи этот ритм. Руки работают плавно, смазки не жалей.",
+            "Хорошо идешь. Разогревайся, пока я добрая и разрешаю."
+        ];
+        const stopPhrasesMedium = [
+            "РУКИ ПРОЧЬ! Быстро убрал ладони и глубоко задышал. Терпи!",
+            "СТОП! Замри, сожми зубы и удерживай этот пик. Не вздумай капнуть."
+        ];
+
+        const goPhrasesHard = [
+            "Двигайся быстрее! Чтобы выдержать полчаса, тебе нужно приучить тело к бешеным скоростям. Работай!",
+            "Твой пульс на пределе, но ты обязан терпеть! Вливайся в темп и не смей сбавлять обороты!",
+            "Смотри на экран и ускоряйся! Выжимай из своего жалкого прибора максимум, пока я не закричала стоп!"
+        ];
+        const stopPhrasesHard = [
+            "ЗАМРИ, НИЧТОЖЕСТВО! Не смей даже дышать в сторону своего стручка! Расслабь пресс и терпи этот ад!",
+            "РУКИ ЗА ГОЛОВУ! Если хоть одна капля упадет на ковер — ты будешь умолять меня о пощаде! Остужайся!"
+        ];
+
+        const menuPhrases = [
+            "Ну же, чего ты там топчешься у входа? Заходи в лагерь, я сегодня добрая... Почти.",
+            "Смотришь на меня? Мои аргонианки уже заскучали, да и я не против посмотреть на твои потуги...",
+            "Хватит мять пальцы на пороге. Выбирай уровень и покажи мне, есть ли у тебя хоть капля воли.",
+            "Я вижу твоё нетерпение. Готов поспорить, твоих сил не хватит даже на пять минут под моим контролем."
+        ];
+
+        const lockoutPhrases = [
+            "Ха-ха-ха! Жалкий человечишка! Твой ничтожный стручок лопнул от пары минут моего темпа? Твоё семя теперь размазано по рукам, а твоё мужское эго растоптано. Сиди и сопливь на таймер, скорострел хренов!",
+            "Ой, какая быстрая и дешёвая кончина... Твоя похотливая плоть сорвалась при первом же разгоне. Я забираю твой оргазм, а тебя оставляю с пустыми яйцами и диким стыдом на целых 6 часов. Страдай и не смей вытираться, размазня!",
+            "Ну что, обкончал свои пальчики раньше времени, ничтожество? Мои аргонианские девы покатываются со смеху над твоей жальной выносливостью. Твой лимит исчерпан, руки за голову и быстро смотреть на секундомер!",
+            "Какая жалкая разрядка! Твой прибор сработал как неисправный огнетушитель — пшик, и всё. Ты даже не заслуживаешь смотреть на моих соплеменниц. Сиди в углу и молись на цифры, куколд."
+        ];
+
+        const distractingImages = [
+            "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600", 
+            "https://images.unsplash.com/photo-1448375240586-882707db888b?w=600", 
+            "https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=600", 
+            "https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?w=600", 
+            "https://images.unsplash.com/photo-1473448912268-2022ce9509d8?w=600"  
+        ];
+
+        // Задания на искупление
+        const challenges = [
+            { desc: "Отжаться от пола 25 раз! (Сократить бан на 30 минут)", penalty: 30 },
+            { desc: "Сделать 40 глубоких приседаний! (Сократить бан на 40 минут)", penalty: 40 },
+            { desc: "Удерживать планку ровно 1 минуту! (Сократить бан на 45 минут)", penalty: 45 },
+            { desc: "Пойти и умыться ледяной водой для охлаждения! (Сократить бан на 20 минут)", penalty: 20 },
+            { desc: "Сделать 30 прыжков 'Джеки-Джамп' на месте! (Сократить бан на 25 минут)", penalty: 25 }
+        ];
+
+        let chosenDiff = null, marathonTimeLeft = 0, phaseTimeLeft = 0, isGoPhase = true;
+        let permissionChance = 100, extendClicks = 0;
+        let state = { fails: 0, banUntil: null };
+        let currentChallenge = null;
+        
+        let gameInterval, phaseInterval, banInterval, metronomeInterval, lockoutPhraseInterval, videoSwapInterval, menuSeductiveInterval;
+        
+        let videoPool = [];
+        let imagePool = [];
+        let permanentSplats = [];
+        let shotCount = 0;
+        let maxShotsLimit = 5; 
+        
+        // Переменные VTuber-движка
+        let blinkTimeout = null;
+        let isBlinking = false;
+        let isTalking = false;
+        let mouthToggle = false;
+        let textTickerTimeout = null;
+        let mouthInterval = null;
+
+        // Переменные аудиодвижка
+        let audioCtx = null;
+        let bgMusic = null;
+        let isVoiceEnabled = true;
+
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.getVoices();
+            if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
+            }
+        }
+
+        window.onload = function() {
+            const savedState = localStorage.getItem('sindra_python_edition');
+            if (savedState) { try { state = JSON.parse(savedState); } catch(e) {} }
+            
+            const savedUserId = localStorage.getItem('sindra_api_userid');
+            const savedApiKey = localStorage.getItem('sindra_api_key');
+            if (savedUserId) document.getElementById('api-userid').value = savedUserId;
+            if (savedApiKey) document.getElementById('api-key').value = savedApiKey;
+
+            if (state.banUntil && new Date().getTime() < state.banUntil) {
+                switchScreen('screen-lockout');
+                startBanTimer();
+            } else {
+                startMenuSeductionTimer();
+            }
+            startBlinkEngine();
+            preloadImages();
+            updateStartButtonState();
+        };
+
+        function preloadImages() {
+            const images = ['sindra_idle.png', 'sindra_blink.png', 'sindra_talk.png', 'sindra_talk_blink.png'];
+            images.forEach(src => {
+                const img = new Image();
+                img.src = src;
+            });
+        }
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            if (!bgMusic) {
+                bgMusic = new Audio("https://archive.org/download/wind-guide-you_202106/Secunda.mp3");
+                bgMusic.loop = true;
+                bgMusic.volume = 0.12;
+            }
+
+            if (bgMusic.paused) {
+                bgMusic.play().catch(e => console.log("Музыка ожидает активности"));
+            }
+        }
+
+        function toggleVoice() {
+            isVoiceEnabled = !isVoiceEnabled;
+            const btn = document.getElementById('voice-toggle-btn');
+            if (isVoiceEnabled) {
+                btn.innerText = "🔊 ГОЛОС: ВКЛ";
+                if ('speechSynthesis' in window) window.speechSynthesis.resume();
+            } else {
+                btn.innerText = "🔇 ГОЛОС: ВЫКЛ";
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            }
+        }
+
+        function speakSindra(text) {
+            if (!isVoiceEnabled) return;
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); 
+                const cleanText = text.replace(/🐉|🔒|🏆|💦|🚫|⚡|🌲|🔴|🟢|🟡|❌|🛡️|🏋️|💪/g, '');
+                const utterance = new SpeechSynthesisUtterance(cleanText);
+                
+                const voices = window.speechSynthesis.getVoices();
+                const ruVoice = voices.find(voice => voice.lang.startsWith('ru'));
+                if (ruVoice) { utterance.voice = ruVoice; }
+                
+                utterance.rate = 0.85;  
+                utterance.pitch = 0.82; 
+                
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function saveApiSettings() {
+            const userId = document.getElementById('api-userid').value.trim();
+            const apiKey = document.getElementById('api-key').value.trim();
+            
+            localStorage.setItem('sindra_api_userid', userId);
+            localStorage.setItem('sindra_api_key', apiKey);
+            
+            updateStartButtonState();
+        }
+
+        function updateStartButtonState() {
+            const userId = document.getElementById('api-userid').value.trim();
+            const apiKey = document.getElementById('api-key').value.trim();
+            const startBtn = document.getElementById('start-btn');
+            
+            if (userId && apiKey && chosenDiff) {
+                startBtn.style.opacity = "1";
+                startBtn.style.pointerEvents = "auto";
+                startBtn.innerText = "Запустить марафон";
+            } else {
+                startBtn.style.opacity = "0.5";
+                startBtn.style.pointerEvents = "none";
+                if (!userId || !apiKey) {
+                    startBtn.innerText = "Укажите API ключи в панели настроек";
+                } else {
+                    startBtn.innerText = "Выберите уровень нагрузки выше";
+                }
+            }
+        }
+
+        function playUndertaleSpeechSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.type = 'triangle'; 
+            const baseFreq = 160; 
+            const freqRandomizer = baseFreq + (Math.random() * 30 - 15);
+            osc.frequency.setValueAtTime(freqRandomizer, audioCtx.currentTime);
+            
+            gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.06);
+        }
+
+        function playMetronomeClick() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
+            
+            gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.05);
+        }
+
+        function playSplatSound() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            
+            const bufferSize = audioCtx.sampleRate * 0.15; 
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+            
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(400, now);
+            filter.frequency.exponentialRampToValueAtTime(80, now + 0.12);
+            
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+            
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            noise.start(now);
+            noise.stop(now + 0.15);
+        }
+
+        function playVictoryFanfare() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const notes = [261.63, 329.63, 392.00, 523.25]; 
+            
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, now + idx * 0.15);
+                
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.1, now + idx * 0.15 + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.15 + 0.6);
+                
+                osc.start(now + idx * 0.15);
+                osc.stop(now + idx * 0.15 + 0.7);
+            });
+        }
+
+        function updateSprite() {
+            const activeScreen = document.querySelector('.screen.active');
+            let imgId = 'sindra-img';
+            if (activeScreen && activeScreen.id === 'screen-lockout') {
+                imgId = 'sindra-img-lockout';
+            } else if (activeScreen && activeScreen.id === 'screen-menu') {
+                imgId = 'sindra-img-menu';
+            } else if (activeScreen && activeScreen.id === 'screen-denied') {
+                imgId = 'sindra-img-denied';
+            }
+            const img = document.getElementById(imgId);
+            if (!img) return;
+            updateSpriteForImg(img);
+        }
+
+        function updateSpriteForImg(img) {
+            if (!img) return;
+            const isMenu = (img.id === 'sindra-img-menu');
+            
+            if (isMenu) {
+                if (isTalking) {
+                    if (mouthToggle) {
+                        img.src = 'sindra_menu_talk_blink.png';
+                    } else {
+                        img.src = isBlinking ? 'sindra_menu_blink.png' : 'sindra_menu.png';
+                    }
+                } else {
+                    img.src = isBlinking ? 'sindra_menu_blink.png' : 'sindra_menu.png';
+                }
+            } else {
+                if (isTalking) {
+                    if (mouthToggle) {
+                        img.src = 'sindra_talk_blink.png';
+                    } else {
+                        img.src = isBlinking ? 'sindra_blink.png' : 'sindra_idle.png';
+                    }
+                } else {
+                    img.src = isBlinking ? 'sindra_blink.png' : 'sindra_idle.png';
+                }
+            }
+        }
+
+        function startBlinkEngine() {
+            clearTimeout(blinkTimeout);
+            const nextBlinkTime = Math.random() * (4500 - 2500) + 2500;
+            
+            blinkTimeout = setTimeout(() => {
+                isBlinking = true;
+                updateSprite();
+                
+                setTimeout(() => {
+                    isBlinking = false;
+                    updateSprite();
+                    startBlinkEngine();
+                }, 140);
+            }, nextBlinkTime);
+        }
+
+        function askSindraToSay(text, targetScreen = 'game') {
+            let dialogueBoxId = 'rpg-dialogue-text';
+            let imgId = 'sindra-img';
+            
+            if (targetScreen === 'lockout') {
+                dialogueBoxId = 'rpg-dialogue-text-lockout';
+                imgId = 'sindra-img-lockout';
+            } else if (targetScreen === 'menu') {
+                dialogueBoxId = 'rpg-dialogue-text-menu';
+                imgId = 'sindra-img-menu';
+            } else if (targetScreen === 'denied') {
+                dialogueBoxId = 'rpg-dialogue-text-denied';
+                imgId = 'sindra-img-denied';
+            }
+            
+            const dialogueBox = document.getElementById(dialogueBoxId);
+            const img = document.getElementById(imgId);
+            
+            if (!dialogueBox || !img) return;
+
+            clearTimeout(textTickerTimeout);
+            clearInterval(mouthInterval);
+            
+            img.classList.remove('jump');
+            void img.offsetWidth; 
+            img.classList.add('jump');
+
+            isTalking = true;
+            let currentIdx = 0;
+            dialogueBox.innerHTML = "";
+
+            speakSindra(text);
+
+            mouthInterval = setInterval(() => {
+                mouthToggle = !mouthToggle;
+                updateSpriteForImg(img);
+            }, 110);
+
+            function typeLetter() {
+                if (currentIdx < text.length) {
+                    const char = text.charAt(currentIdx);
+                    dialogueBox.innerHTML += char;
+                    currentIdx++;
+                    
+                    if (char !== ' ' && char !== '\n' && char !== '\t') {
+                        playUndertaleSpeechSound();
+                    }
+                    
+                    textTickerTimeout = setTimeout(typeLetter, Math.random() * (45 - 25) + 25);
+                } else {
+                    clearInterval(mouthInterval);
+                    isTalking = false;
+                    mouthToggle = false;
+                    updateSpriteForImg(img);
+                }
+            }
+            typeLetter();
+        }
+
+        function startMenuSeductionTimer() {
+            clearInterval(menuSeductiveInterval);
+            menuSeductiveInterval = setInterval(() => {
+                const activeScreen = document.querySelector('.screen.active');
+                if (activeScreen && activeScreen.id === 'screen-menu') {
+                    const randPhrase = menuPhrases[Math.floor(Math.random() * menuPhrases.length)];
+                    askSindraToSay(randPhrase, 'menu');
+                }
+            }, 60000); 
+        }
+
+        function selectDifficulty(diff, minutes, cardElement) {
+            initAudio();
+            document.querySelectorAll('.diff-card').forEach(c => c.classList.remove('selected'));
+            cardElement.classList.add('selected');
+            chosenDiff = diff;
+            marathonTimeLeft = minutes * 60;
+            updateStartButtonState();
+        }
+
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+        }
+
+        function startGame() {
+            initAudio();
+            clearInterval(menuSeductiveInterval); 
+            
+            const userId = localStorage.getItem('sindra_api_userid');
+            const apiKey = localStorage.getItem('sindra_api_key');
+            
+            if (!userId || !apiKey) {
+                alert("Пожалуйста, сначала укажите ваши API настройки в меню!");
+                return;
+            }
+            
+            const startBtn = document.getElementById('start-btn');
+            startBtn.innerText = "🐉 Поиск материалов...";
+            startBtn.style.opacity = "0.5";
+            startBtn.style.pointerEvents = "none";
+            
+            const url = `https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&tags=argonian&limit=200&user_id=${userId}&api_key=${apiKey}`;
+            
+            fetch(url)
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error("Запрос отклонен сервером. Проверьте правильность ключей.");
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    if (!Array.isArray(data)) {
+                        throw new Error("Неверный формат ответа API. Проверьте User ID и API Key.");
+                    }
+                    
+                    videoPool = data.filter(post => post.file_url.endsWith('.mp4') || post.file_url.endsWith('.webm'));
+                    imagePool = data.filter(post => !post.file_url.endsWith('.mp4') && !post.file_url.endsWith('.webm'));
+                    
+                    if (videoPool.length === 0) { videoPool = data; }
+                    if (imagePool.length === 0) { imagePool = data; }
+                    
+                    permissionChance = 100;
+                    extendClicks = 0;
+                    document.getElementById('permission-chance-text').innerText = `Шанс разрешения: 100%`;
+
+                    if (chosenDiff === 'easy') maxShotsLimit = 3;
+                    else if (chosenDiff === 'medium') maxShotsLimit = 5;
+                    else if (chosenDiff === 'hard') maxShotsLimit = 8;
+
+                    startBtn.innerText = "Запустить";
+                    switchScreen('screen-game');
+
+                    const indType = document.getElementById('indicator-type').value;
+                    if (indType === 'slider') {
+                        document.getElementById('tempo-circle').style.display = 'none';
+                        document.getElementById('friction-guide-container').style.display = 'flex';
+                    } else {
+                        document.getElementById('tempo-circle').style.display = 'block';
+                        document.getElementById('friction-guide-container').style.display = 'none';
+                    }
+
+                    startMarathonTimer();
+                    startVideoRotation();
+                    startNewPhase();
+                })
+                .catch(err => {
+                    alert("❌ Ошибка авторизации или сети!\n\nИнструкция:\n1. Проверьте правильность User ID и API Key.\n2. Убедитесь в наличии интернета.\n\n" + err.message);
+                    startBtn.innerText = "Попробовать снова";
+                    updateStartButtonState();
+                });
+        }
+
+        function extendStopPhase() {
+            if (isGoPhase) return;
+            
+            extendClicks++;
+            phaseTimeLeft += 15;
+            
+            let penalty = 0.5;
+            if (chosenDiff === 'medium') penalty = 4;
+            else if (chosenDiff === 'hard') penalty = 5;
+            
+            permissionChance = Math.max(0, parseFloat((permissionChance - penalty).toFixed(1)));
+            
+            document.getElementById('permission-chance-text').innerText = `Шанс разрешения: ${permissionChance}%`;
+            
+            playMetronomeClick();
+        }
+
+        function startVideoRotation() {
+            clearInterval(videoSwapInterval);
+            playRandomVideo();
+            
+            videoSwapInterval = setInterval(() => {
+                if (isGoPhase) {
+                    playRandomVideo();
+                }
+            }, 60000); 
+        }
+
+        function playRandomVideo() {
+            if (!videoPool || videoPool.length === 0) return;
+            const randPost = videoPool[Math.floor(Math.random() * videoPool.length)];
+            const videoEl = document.getElementById('gameplay-video');
+            videoEl.src = randPost.file_url;
+            
+            if (isGoPhase) {
+                videoEl.play();
+            } else {
+                videoEl.pause();
+            }
+        }
+
+        // РУЧНОЙ ПРОПУСК ТЕКУЩЕГО ВИДЕО (Мгновенный свап)
+        function skipVideo() {
+            if (!isGoPhase) return;
+            playRandomVideo();
+            startVideoRotation(); // Сбрасываем таймер автосмены, чтобы не было наложения
+        }
+
+        function showDistractingContent() {
+            const videoEl = document.getElementById('gameplay-video');
+            const distractContainer = document.getElementById('distracting-image-container');
+            const distractImg = document.getElementById('distracting-img');
+            
+            videoEl.pause();
+            videoEl.style.display = 'none';
+            document.getElementById('skip-video-btn').style.display = 'none'; // Прячем кнопку пропуска
+
+            const randImg = distractingImages[Math.floor(Math.random() * distractingImages.length)];
+            distractImg.src = randImg;
+            distractContainer.style.display = 'flex';
+
+            document.getElementById('extend-container').style.display = 'flex';
+
+            if (bgMusic) bgMusic.volume = 0.35;
+        }
+
+        function showVideoContent() {
+            const videoEl = document.getElementById('gameplay-video');
+            const distractContainer = document.getElementById('distracting-image-container');
+            
+            distractContainer.style.display = 'none';
+            videoEl.style.display = 'block';
+            videoEl.play();
+            
+            document.getElementById('skip-video-btn').style.display = 'block'; // Показываем кнопку пропуска
+
+            document.getElementById('extend-container').style.display = 'none';
+
+            if (bgMusic) bgMusic.volume = 0.08;
+        }
+
+        function startMarathonTimer() {
+            clearInterval(gameInterval);
+            gameInterval = setInterval(() => {
+                marathonTimeLeft--;
+                let mins = Math.floor(marathonTimeLeft / 60), secs = marathonTimeLeft % 60;
+                document.getElementById('marathon-timer').innerText = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+                if (marathonTimeLeft <= 0) { endGameVictory(); }
+            }, 1000);
+        }
+
+        function clearAllIntervals() {
+            clearInterval(gameInterval);
+            clearInterval(phaseInterval);
+            clearInterval(metronomeInterval);
+            clearInterval(banInterval);
+            clearInterval(lockoutPhraseInterval);
+            clearInterval(videoSwapInterval);
+            clearInterval(menuSeductiveInterval);
+            clearTimeout(textTickerTimeout);
+            clearInterval(mouthInterval);
+        }
+
+        function startNewPhase() {
+            clearInterval(phaseInterval);
+            clearInterval(metronomeInterval);
+            
+            let minTime = 15, maxTime = 30;
+            if (chosenDiff === 'easy') { minTime = isGoPhase ? 12 : 25; maxTime = isGoPhase ? 18 : 45; } 
+            else if (chosenDiff === 'medium') { minTime = 20; maxTime = 35; } 
+            else { minTime = isGoPhase ? 40 : 10; maxTime = isGoPhase ? 70 : 18; }
+
+            phaseTimeLeft = Math.floor(Math.random() * (maxTime - minTime + 1)) + minTime;
+            const maxPhaseTime = phaseTimeLeft;
+
+            const circle = document.getElementById('tempo-circle'), label = document.getElementById('status-label');
+            const barFill = document.getElementById('phase-bar'), tempoText = document.getElementById('tempo-text');
+            const slider = document.getElementById('friction-slider');
+
+            if (isGoPhase) {
+                label.innerText = "ДРОЧИ"; label.style.color = "var(--go-color)";
+                circle.classList.remove('stop'); barFill.style.backgroundColor = "var(--go-color)";
+                
+                let speeds = [{ name: "Размеренно-медленный", dur: "2.0s", ms: 2000 }, { name: "Умеренно-средний", dur: "1.4s", ms: 1400 }];
+                if (chosenDiff !== 'easy') speeds.push({ name: "БЕШЕНЫЙ СУПЕР-РАЗГОН!", dur: "0.7s", ms: 700 });
+                
+                const currentSpeed = speeds[Math.floor(Math.random() * speeds.length)];
+                tempoText.innerText = `Темп: ${currentSpeed.name}`;
+                
+                circle.style.animation = `pulse ${currentSpeed.dur} infinite ease-in-out`;
+                slider.style.animation = `slideUpDown ${currentSpeed.dur} infinite ease-in-out`;
+                
+                showVideoContent(); 
+                
+                playMetronomeClick();
+                metronomeInterval = setInterval(() => {
+                    playMetronomeClick();
+                }, currentSpeed.ms);
+                
+                const phrases = (chosenDiff === 'easy') ? goPhrasesEasy : ((chosenDiff === 'medium') ? goPhrasesMedium : goPhrasesHard);
+                askSindraToSay(phrases[Math.floor(Math.random() * phrases.length)], 'game');
+            } else {
+                label.innerText = "РУКИ ПРОЧЬ! СТОП"; label.style.color = "var(--warning-color)";
+                circle.classList.add('stop'); barFill.style.backgroundColor = "var(--warning-color)";
+                tempoText.innerText = "Запретная фаза...";
+                
+                slider.style.animation = 'none';
+
+                showDistractingContent(); 
+                
+                const phrases = (chosenDiff === 'easy') ? stopPhrasesEasy : ((chosenDiff === 'medium') ? stopPhrasesMedium : stopPhrasesHard);
+                askSindraToSay(phrases[Math.floor(Math.random() * phrases.length)], 'game');
+            }
+
+            phaseInterval = setInterval(() => {
+                phaseTimeLeft--;
+                document.getElementById('phase-timer-text').innerText = `${phaseTimeLeft} сек`;
+                barFill.style.width = `${(phaseTimeLeft / maxPhaseTime) * 100}%`;
+                if (phaseTimeLeft <= 0) { isGoPhase = !isGoPhase; startNewPhase(); }
+            }, 1000);
+        }
+
+        // НАКАЗАНИЯ ДЛЯ ЭКРАНА БЛОКИРОВКИ
+        function generateChallenge() {
+            currentChallenge = challenges[Math.floor(Math.random() * challenges.length)];
+            document.getElementById('active-challenge-desc').innerText = `ПРИКАЗ СИНДРЫ: ${currentChallenge.desc}`;
+            document.getElementById('accept-challenge-btn').style.display = 'none';
+            document.getElementById('active-challenge-container').style.display = 'flex';
+            
+            askSindraToSay(`Так и быть. Если выполнишь мой приказ: ${currentChallenge.desc.split('!')[0]}, я спишу тебе часть штрафного времени. Не смей мне лгать!`, 'lockout');
+        }
+
+        function completeChallenge() {
+            if (!currentChallenge) return;
+            
+            const reductionMs = currentChallenge.penalty * 60 * 1000;
+            state.banUntil = Math.max(new Date().getTime(), state.banUntil - reductionMs);
+            localStorage.setItem('sindra_python_edition', JSON.stringify(state));
+            
+            const congrats = [
+                "Хм, ладно, верю на слово... Но если соврал — твоя карма сгниет. Я сократила тебе время!",
+                "Хорошо, хоть какая-то польза от твоих мышц. Я списала тебе штрафное время. Можешь передохнуть.",
+                "Надеюсь, твои ноги дрожат от приседаний так же, как твоя воля при эдже. Время бана сокращено!"
+            ];
+            
+            askSindraToSay(congrats[Math.floor(Math.random() * congrats.length)], 'lockout');
+            
+            document.getElementById('active-challenge-container').style.display = 'none';
+            document.getElementById('accept-challenge-btn').style.display = 'inline-block';
+            document.getElementById('accept-challenge-btn').innerText = "🐉 Просить о новой пощаде";
+        }
+
+        function registerFail() {
+            clearAllIntervals();
+            document.getElementById('gameplay-video').pause();
+            
+            if (bgMusic) bgMusic.volume = 0.12;
+
+            state.fails = (state.fails || 0) + 1;
+            state.banUntil = new Date().getTime() + (BAN_HOURS * 60 * 60 * 1000);
+            localStorage.setItem('sindra_python_edition', JSON.stringify(state));
+            
+            document.getElementById('active-challenge-container').style.display = 'none';
+            document.getElementById('accept-challenge-btn').style.display = 'inline-block';
+            document.getElementById('accept-challenge-btn').innerText = "🐉 Просить о пощаде";
+
+            switchScreen('screen-lockout'); 
+            startBanTimer();
+        }
+
+        function sayRandomLockoutPhrase() {
+            const phrase = lockoutPhrases[Math.floor(Math.random() * lockoutPhrases.length)];
+            askSindraToSay(phrase, 'lockout');
+        }
+
+        function startBanTimer() {
+            clearInterval(banInterval);
+            clearInterval(lockoutPhraseInterval);
+            
+            sayRandomLockoutPhrase();
+            
+            lockoutPhraseInterval = setInterval(() => {
+                sayRandomLockoutPhrase();
+            }, 30000);
+            
+            function update() {
+                const remain = state.banUntil - new Date().getTime();
+                if (remain <= 0) {
+                    clearAllIntervals();
+                    state.banUntil = null;
+                    localStorage.setItem('sindra_python_edition', JSON.stringify(state));
+                    switchScreen('screen-menu'); 
+                    startMenuSeductionTimer(); 
+                    return;
+                }
+                const h = Math.floor((remain % (1000*60*60*24)) / (1000*60*60));
+                const m = Math.floor((remain % (1000*60*60)) / (1000*60));
+                const s = Math.floor((remain % (1000*60)) / 1000);
+                
+                document.getElementById('countdown-timer').innerText = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+            }
+            update(); 
+            banInterval = setInterval(update, 1000);
+        }
+
+        function endGameVictory() {
+            clearAllIntervals();
+            document.getElementById('gameplay-video').pause();
+            document.getElementById('skip-video-btn').style.display = 'none'; // Прячем кнопку пропуска
+            
+            const roll = Math.floor(Math.random() * 100) + 1;
+            
+            if (roll <= permissionChance) {
+                // ПОБЕДА
+                if (bgMusic) {
+                    bgMusic.pause();
+                    bgMusic.src = "https://archive.org/download/wind-guide-you_202106/Distant%20Horizons.mp3";
+                    bgMusic.loop = true;
+                    bgMusic.volume = 0.2;
+                    bgMusic.play().catch(e => console.log("Музыка ожидает активности"));
+                }
+
+                const desc = document.getElementById('victory-desc');
+                if (chosenDiff === 'easy') desc.innerText = `Успешно! 5 минут контроля позади. Твой шанс составлял ${permissionChance}%, ролл кубика: ${roll}.`;
+                else if (chosenDiff === 'medium') desc.innerText = `Великолепно! 15 минут качелей преодолены. Твой шанс составлял ${permissionChance}%, ролл кубика: ${roll}.`;
+                else desc.innerText = `НЕВЕРОЯТНО! Полчаса выматывающего измора пройдены. Твой шанс составлял ${permissionChance}%, ролл кубика: ${roll}.`;
+                
+                switchScreen('screen-victory');
+                
+                shotCount = 0;
+                permanentSplats = [];
+                document.getElementById('victory-shots-count').innerText = `Струй выпущено: 0 / ${maxShotsLimit}`;
+                document.getElementById('shoot-semen-btn').style.display = 'block';
+                document.getElementById('victory-exit-btn').style.display = 'none';
+
+                if (imagePool && imagePool.length > 0) {
+                    const randImg = imagePool[Math.floor(Math.random() * imagePool.length)];
+                    document.getElementById('victory-image').src = randImg.file_url;
+                    
+                    document.getElementById('victory-image').onload = function() {
+                        const canvas = document.getElementById('semen-canvas');
+                        canvas.width = document.getElementById('victory-image').clientWidth;
+                        canvas.height = document.getElementById('victory-image').clientHeight;
+                        const ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, canvas.width, canvas.height); 
+                    };
+                } else {
+                    document.getElementById('victory-image').src = "https://images.unsplash.com/photo-1590069261209-f8e9b8642343?w=600";
+                }
+            } else {
+                // ОТКАЗ
+                switchScreen('screen-denied');
+                document.getElementById('denied-clicks-info').innerText = `Кнопка продления была нажата целых ${extendClicks} раз!\nТвой шанс на разрядку упал до ${permissionChance}%, а кубик выбросил: ${roll}.`;
+                
+                document.getElementById('denied-advice-panel').style.display = 'none';
+
+                askSindraToSay(`Ха-ха-ха! Какая глупая и предсказуемая неудача! Ты спасался кнопкой продления целых ${extendClicks} раз, опустив свой шанс до ${permissionChance}%. Жребий брошен: ОРГАЗМ ЗАПРЕЩЕН! Убирай руки от своего жалкого прибора и марш остужаться в душ на 6 часов, неудачник! Тренировка окончена без поощрения!`, "denied");
+            }
+        }
+
+        // МЕХАНИКА ВЫСТРЕЛА СЕМЕНЕМ (ФОКУС НА ЦЕНТР ЭКРАНА)
+        function shootSemen() {
+            if (shotCount >= maxShotsLimit) return;
+            
+            playSplatSound();
+            
+            const canvas = document.getElementById('semen-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const startX = canvas.width / 2;
+            const startY = canvas.height;
+            
+            // Сперма теперь летит строго в центр экрана (погрешность до 15% от центра)
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const targetX = centerX + (Math.random() * (canvas.width * 0.3) - (canvas.width * 0.15));
+            const targetY = centerY + (Math.random() * (canvas.height * 0.3) - (canvas.height * 0.15));
+            
+            shotCount++;
+            document.getElementById('victory-shots-count').innerText = `Струй выпущено: ${shotCount} / ${maxShotsLimit}`;
+            
+            let progress = 0;
+            function animateStream() {
+                if (progress < 1) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    drawAllPermanentSplats(ctx);
+                    
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+                    ctx.lineWidth = 8;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    
+                    const controlX = (startX + targetX) / 2;
+                    const controlY = Math.min(startY, targetY) - 70; 
+                    
+                    const currentX = (1 - progress) * (1 - progress) * startX + 2 * (1 - progress) * progress * controlX + progress * progress * targetX;
+                    const currentY = (1 - progress) * (1 - progress) * startY + 2 * (1 - progress) * progress * controlY + progress * progress * targetY;
+                    
+                    ctx.lineTo(currentX, currentY);
+                    ctx.stroke();
+                    
+                    progress += 0.08;
+                    requestAnimationFrame(animateStream);
+                } else {
+                    permanentSplats.push({
+                        x: targetX,
+                        y: targetY,
+                        size: Math.random() * 25 + 20,
+                        drops: [
+                            { dx: Math.random() * 30 - 15, dy: Math.random() * 40 + 10, size: Math.random() * 6 + 4 },
+                            { dx: Math.random() * 30 - 15, dy: Math.random() * 40 + 10, size: Math.random() * 6 + 4 }
+                        ]
+                    });
+                    
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    drawAllPermanentSplats(ctx);
+                    
+                    if (shotCount >= maxShotsLimit) {
+                        document.getElementById('shoot-semen-btn').style.display = 'none';
+                        document.getElementById('victory-exit-btn').style.display = 'block';
+                        
+                        playVictoryFanfare();
+                        askSindraToSay("Да-а-а... Какая мощная разрядка прямо на моё лицо! Весь экран залит твоим горячим семенем. Ты честно заслужил этот финал. Отдыхай, путник!", "victory");
+                    }
+                }
+            }
+            animateStream();
+        }
+
+        function drawAllPermanentSplats(ctx) {
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+            ctx.shadowBlur = 4;
+            
+            permanentSplats.forEach(splat => {
+                ctx.beginPath();
+                ctx.arc(splat.x, splat.y, splat.size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                splat.drops.forEach(drop => {
+                    ctx.beginPath();
+                    ctx.arc(splat.x + drop.dx, splat.y + drop.dy, drop.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            });
+            
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+        }
+
+        function returnToMenu() {
+            clearAllIntervals();
+            switchScreen('screen-menu');
+            startMenuSeductionTimer();
+        }
+
+        function toggleAdvicePanel() {
+            const panel = document.getElementById('advice-panel');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                panel.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        function toggleEducationPanel() {
+            const panel = document.getElementById('education-panel');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                panel.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        function toggleDeniedAdvicePanel() {
+            const panel = document.getElementById('denied-advice-panel');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                panel.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
