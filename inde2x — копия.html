@@ -1,0 +1,1999 @@
+html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Синдра: Эджинг-Марафон v6.0-Alpha (Skyrim Edition)</title>
+    <style>
+        :root {
+            --bg-color: #0b0c10;
+            --container-bg: #1f2833;
+            --accent-color: #00f5d4;
+            --text-color: #c5c6c7;
+            --warning-color: #ff4d6d;
+            --go-color: #2ec4b6;
+            --forced-color: #9d4edd;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            background-color: var(--container-bg);
+            border: 2px solid #2f3e46;
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%;
+            max-width: 1200px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            box-sizing: border-box;
+        }
+
+        .screen { display: none; text-align: center; }
+        .screen.active { display: block; }
+
+        h1, h2, h3, h4 {
+            color: var(--accent-color);
+            text-shadow: 0 0 10px rgba(0, 245, 212, 0.3);
+            margin-top: 0;
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.1s, opacity 0.3s;
+        }
+        button:hover { opacity: 0.9; }
+        button:active { transform: scale(0.98); }
+
+        .difficulty-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 25px 0;
+            flex-wrap: wrap;
+        }
+
+        .diff-card {
+            background: #0b0c10;
+            border: 2px solid #2f3e46;
+            border-radius: 10px;
+            padding: 20px;
+            width: 240px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .diff-card:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 245, 212, 0.2);
+        }
+        .diff-card.selected {
+            border-color: var(--accent-color);
+            background: rgba(0, 245, 212, 0.05);
+        }
+
+        .game-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 950px) {
+            .game-layout { grid-template-columns: 1fr; }
+        }
+
+        .dashboard {
+            background: #0b0c10;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #2f3e46;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .character-stage {
+            position: relative;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 10px;
+        }
+
+        .sindra-avatar {
+            width: 260px;
+            height: auto;
+            display: block;
+            image-rendering: -webkit-optimize-contrast;
+            transform-origin: bottom center;
+        }
+
+        .sindra-avatar.jump {
+            animation: vtuberJump 0.4s ease-out;
+        }
+
+        @keyframes vtuberJump {
+            0% { transform: translateY(0) scaleY(1); }
+            30% { transform: translateY(-15px) scaleY(1.05); }
+            60% { transform: translateY(2px) scaleY(0.97); }
+            100% { transform: translateY(0) scaleY(1); }
+        }
+
+        .rpg-speech-bubble {
+            position: relative;
+            background: #1f2833;
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+            width: 90%;
+            box-sizing: border-box;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+            text-align: left;
+        }
+
+        .rpg-speech-bubble::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 0 10px 10px 10px;
+            border-style: solid;
+            border-color: transparent transparent var(--accent-color) transparent;
+        }
+
+        .rpg-speaker-name {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-color);
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .rpg-text {
+            font-size: 13px;
+            line-height: 1.4;
+            color: #fff;
+            min-height: 38px;
+        }
+
+        .tempo-circle {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background-color: var(--go-color);
+            margin: 5px auto;
+            box-shadow: 0 0 15px var(--go-color);
+            transition: background-color 0.4s, box-shadow 0.4s;
+        }
+        .tempo-circle.stop {
+            background-color: var(--warning-color);
+            box-shadow: 0 0 15px var(--warning-color);
+            animation: none !important;
+        }
+
+        @keyframes sindraPulse {
+            0% { transform: scale(0.94); box-shadow: 0 0 8px #2ec4b6; }
+            50% { transform: scale(1.06); box-shadow: 0 0 20px #2ec4b6; }
+            100% { transform: scale(0.94); box-shadow: 0 0 8px #2ec4b6; }
+        }
+
+        .bar-container {
+            width: 100%;
+            background: #222;
+            border-radius: 6px;
+            height: 16px;
+            overflow: hidden;
+            border: 1px solid #444;
+            position: relative;
+        }
+        .bar-fill {
+            height: 100%;
+            width: 100%;
+            background-color: var(--go-color);
+            transition: width 0.1s linear;
+        }
+        .bar-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: #fff;
+            line-height: 16px;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        .content-box { display: flex; flex-direction: column; gap: 10px; }
+        
+        .viewer-box {
+            width: 100%;
+            height: 580px;
+            border: 2px solid #2f3e46;
+            border-radius: 8px;
+            background-color: #000;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Интерактивный Stroke Guide (Палочка и куб) */
+        .stroke-guide-panel {
+            width: 80px;
+            height: 140px;
+            background: #0b0c10;
+            border: 1px solid #2f3e46;
+            border-radius: 8px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+        }
+        .stroke-shaft {
+            width: 10px;
+            height: 120px;
+            background: #1f2833;
+            border-radius: 5px;
+            position: relative;
+        }
+        .stroke-cube {
+            width: 22px;
+            height: 14px;
+            background: #ffffff;
+            border: 2px solid #000;
+            border-radius: 4px;
+            position: absolute;
+            left: -6px;
+            bottom: 0%;
+            box-shadow: 0 0 8px #ffffff;
+            transition: bottom 0.08s linear;
+        }
+
+        /* Модальные окна */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: var(--container-bg);
+            border: 2px solid var(--accent-color);
+            border-radius: 12px;
+            padding: 20px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 0 25px rgba(0, 245, 212, 0.2);
+            color: var(--text-color);
+            text-align: left;
+        }
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            font-size: 11px;
+            background: #0b0c10;
+            color: var(--text-color);
+            border: 1px solid #2f3e46;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-radius: 4px;
+        }
+        .tab-btn.active {
+            background: var(--accent-color);
+            color: #000;
+            border-color: var(--accent-color);
+        }
+        .tab-content {
+            display: none;
+            font-size: 13px;
+            line-height: 1.5;
+            max-height: 350px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body onclick="initAudio()">
+
+    <div class="container">
+        
+        <!-- МЕНЮ -->
+        <div id="screen-menu" class="screen active">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 600px; margin: 0 auto 10px auto;">
+                <span style="font-size: 12px; color: #85929e;">v6.0-Alpha Skyrim Edition</span>
+                <button id="voice-toggle-btn" style="margin: 0; padding: 6px 12px; font-size: 12px; background: #2f3e46; color: white;" onclick="toggleVoice()">🔊 ГОЛОС: ВКЛ</button>
+            </div>
+
+            <!-- Персонаж главного меню -->
+            <div class="character-stage" style="max-width: 460px; margin: 0 auto;">
+                <img id="sindra-img-menu" class="sindra-avatar" src="sindra_menu.png" alt="Синдра" style="width: 440px; max-width: 100%;">
+                <div class="rpg-speech-bubble" style="border-color: var(--accent-color);">
+                    <div class="rpg-speaker-name">🐉 Синдра</div>
+                    <div class="rpg-text" id="rpg-dialogue-text-menu">Заходи, путник. Выбери уровень измора, и я лично проверю твою волю...</div>
+                </div>
+            </div>
+
+            <!-- ИНФОРМАЦИОННЫЕ ПАНЕЛИ И ГАЙДЫ -->
+            <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                <button onclick="toggleEducationPanel()" style="background: #2ec4b6; color: black; font-size: 13px; padding: 8px 16px; font-weight: bold; border-radius: 6px; margin: 0;">
+                    📚 Что такое эджинг? Базис врачей
+                </button>
+                <button onclick="openGuidesModal()" style="background: var(--forced-color); color: white; font-size: 13px; padding: 8px 16px; font-weight: bold; border-radius: 6px; margin: 0; box-shadow: 0 0 10px rgba(157, 78, 221, 0.4);">
+                    📖 Справочник эджера (ГАЙДЫ)
+                </button>
+            </div>
+
+            <div id="education-panel" style="display: none; background: #0b0c10; border: 1px solid #2f3e46; border-radius: 8px; padding: 20px; text-align: left; margin: 15px auto 0 auto; max-width: 700px; line-height: 1.5; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+                <h3 style="color: var(--accent-color); border-bottom: 1px solid #2f3e46; padding-bottom: 8px; margin-top: 0; font-size: 18px;">💡 НАУЧНЫЙ БАЗИС И СУТЬ ТРЕНИРОВКИ</h3>
+                <p style="font-size: 13px; color: #c5c6c7;">
+                    <strong>Эджинг (от англ. edge — край)</strong> — это техника удержания сексуального возбуждения на пике (90–95% от критического уровня) без перехода за грань эякуляции [1]. 
+                </p>
+                <p style="font-size: 13px; color: #c5c6c7;">
+                    <strong>Как данный тренажер помогает повысить выносливость:</strong>
+                </p>
+                <ul style="font-size: 13px; color: #aaa; padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+                    <li><strong>1. Развитие контроля PC-мышцы (лобково-копчиковой):</strong> На резких фазах «СТОП» вы рефлекторно сжимаете мышцы тазового дна, чтобы подавить выброс крови [1].</li>
+                    <li><strong>2. Проприоцепция (чувство тела):</strong> Постоянные перепады скоростей учат нервную систему тонко улавливать «точку невозврата».</li>
+                    <li><strong>3. Психологическая закалка:</strong> Резкая остановка под издевательские реплики Синдры учит мозг быстро перенаправлять сигналы стресса.</li>
+                </ul>
+                <p style="font-size: 12px; color: #85929e; margin-top: 10px; border-top: 1px solid #2f3e46; padding-top: 8px;">
+                    <em>Мнение андрологов:</em> Разумный эджинг служит отличной профилактикой синдрома преждевременного семяизвержения [1]. Главное — избегать затягивания сессии более чем на 35–40 минут [1].
+                </p>
+            </div>
+
+            <!-- ИНТЕРАКТИВНАЯ НАСТРОЙКА ТЕГОВ ПОИСКА И СКРЫТЫЕ API КЛЮЧИ -->
+            <div style="background: #0b0c10; border: 2px solid #2f3e46; border-radius: 8px; padding: 15px; margin: 20px auto; max-width: 600px; text-align: left;">
+                <h4 style="color: var(--accent-color); margin-top: 0; margin-bottom: 8px;">🏷️ НАСТРОЙКА ТЕГОВ ПОИСКА (Драконы, Аргонианки)</h4>
+                <p style="font-size: 11px; color: #85929e; margin: 0 0 12px 0; line-height: 1.4;">
+                    Настройте теги поиска по вашему вкусу. Вводите слова на английском через пробел:
+                </p>
+                
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;">
+                    <div style="flex: 1; min-width: 180px;">
+                        <label style="font-size: 11px; color: #85929e; display: block; margin-bottom: 4px;">Искать теги (Имя/Вид)</label>
+                        <input type="text" id="api-include-tags" oninput="saveTagSettings()" placeholder="Например: argonian female dragon" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #2f3e46; background: #1f2833; color: white; box-sizing: border-box; font-size: 13px;">
+                    </div>
+                    <div style="flex: 1; min-width: 180px;">
+                        <label style="font-size: 11px; color: #85929e; display: block; margin-bottom: 4px;">Исключить теги (Blacklist)</label>
+                        <input type="text" id="api-exclude-tags" oninput="saveTagSettings()" placeholder="Например: male feral" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #2f3e46; background: #1f2833; color: white; box-sizing: border-box; font-size: 13px;">
+                    </div>
+                </div>
+
+                <!-- Скрытые под спойлер настройки API для продвинутых разработчиков -->
+                <details style="border-top: 1px dashed #2f3e46; padding-top: 10px; margin-top: 10px;">
+                    <summary style="font-size: 11px; color: #85929e; cursor: pointer; outline: none; user-select: none;">🔧 Расширенные настройки соединения API (для личных ключей)</summary>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+                        <div style="flex: 1; min-width: 130px;">
+                            <label style="font-size: 10px; color: #85929e; display: block; margin-bottom: 4px;">User ID</label>
+                            <input type="text" id="api-userid" oninput="saveApiSettings()" placeholder="Например: 123456" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #2f3e46; background: #1f2833; color: white; box-sizing: border-box; font-size: 12px;">
+                        </div>
+                        <div style="flex: 2; min-width: 180px;">
+                            <label style="font-size: 10px; color: #85929e; display: block; margin-bottom: 4px;">API Key (password hash)</label>
+                            <input type="password" id="api-key" oninput="saveApiSettings()" placeholder="Ваш хэш-ключ..." style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #2f3e46; background: #1f2833; color: white; box-sizing: border-box; font-size: 12px;">
+                        </div>
+                    </div>
+                </details>
+            </div>
+
+            <!-- ТИП ИНДИКАТОРА -->
+            <div style="margin: 15px auto; max-width: 600px; text-align: left; background: #0b0c10; padding: 12px; border: 1px solid #2f3e46; border-radius: 8px;">
+                <label style="font-size: 12px; color: #85929e; display: block; margin-bottom: 6px; font-weight: bold;">🎯 ТИП ИНДИКАТОРА ТЕМПА ФРИКЦИЙ:</label>
+                <select id="indicator-type" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #2f3e46; background: #1f2833; color: white; font-size: 13px;">
+                    <option value="slider">Слайдер фрикций (Ствол и белый куб движения)</option>
+                    <option value="circle">Классический пульсирующий круг</option>
+                </select>
+            </div>
+
+            <div class="difficulty-container">
+                <div class="diff-card" onclick="selectDifficulty('easy', 5, this)">
+                    <h3 style="color: #2ec4b6; margin-bottom: 8px;">🟢 СЛАБАК</h3>
+                    <p style="font-size: 13px; margin: 0; color: #aaa;">
+                        <strong>Время: 5 минут.</strong><br>Нежный образ Синдры. Длинные паузы для отдыха, короткие фазы фрикций.
+                    </p>
+                </div>
+                <div class="diff-card" onclick="selectDifficulty('medium', 15, this)">
+                    <h3 style="color: #ff9f1c; margin-bottom: 8px;">🟡 БОГАТЫРЬ</h3>
+                    <p style="font-size: 13px; margin: 0; color: #aaa;">
+                        <strong>Время: 15 минут.</strong><br>Умеренный темп. Обычный дразнящий образ дракоши.
+                    </p>
+                </div>
+                <div class="diff-card" onclick="selectDifficulty('hard', 30, this)">
+                    <h3 style="color: #ff4d6d; margin-bottom: 8px;">🔴 ГУРУ СЕКСА</h3>
+                    <p style="font-size: 13px; margin: 0; color: #aaa;">
+                        <strong>Время: 30 минут.</strong><br>Жестокое доминирование. Сумасшедший темп и секундные передышки.
+                    </p>
+                </div>
+            </div>
+
+            <button id="start-btn" style="opacity: 0.5; pointer-events: none;" onclick="startGame()">Выберите тип эджа</button>
+        </div>
+
+        <!-- ИГРОВОЙ ПРОЦЕСС -->
+        <div id="screen-game" class="screen">
+            <div class="game-layout">
+                
+                <div class="dashboard">
+                    <div class="character-stage">
+                        <img id="sindra-img" class="sindra-avatar" src="sindra_idle.png" alt="Синдра">
+                        
+                        <div class="rpg-speech-bubble">
+                            <div class="rpg-speaker-name">🐉 Синдра</div>
+                            <div class="rpg-text" id="rpg-dialogue-text">Симулятор запущен. Жду твоих страданий...</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 5px;">
+                        <h3 style="margin: 0; font-size: 12px; color: #85929e;">ОСТАЛОСЬ ДО НАГРАДЫ</h3>
+                        <div id="marathon-timer" style="font-size: 30px; font-weight: bold; color: #fff;">00:00</div>
+                    </div>
+
+                    <div style="width: 100%; text-align: center; min-height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                        <div id="status-label" style="font-weight: bold; font-size: 18px; color: var(--go-color); text-transform: uppercase; margin-bottom: 5px;">ДРОЧИ</div>
+                        
+                        <!-- ПУЛЬСИРУЮЩИЙ КРУГ -->
+                        <div id="tempo-circle" class="tempo-circle"></div>
+                        
+                        <!-- ИНТЕРАКТИВНЫЙ СЛАЙДЕР С КУБОМ -->
+                        <div id="stroke-guide-ui" class="stroke-guide-panel" style="display: none;">
+                            <div class="stroke-shaft">
+                                <div id="friction-slider" class="stroke-cube"></div>
+                            </div>
+                        </div>
+
+                        <div id="tempo-text" style="font-size: 11px; color: #85929e; margin-top: 5px;">Темп: Средний</div>
+                    </div>
+
+                    <div style="width: 100%;">
+                        <div class="bar-container">
+                            <div class="bar-text" id="phase-timer-text">00 сек</div>
+                            <div id="phase-bar" class="bar-fill"></div>
+                        </div>
+                    </div>
+
+                    <div id="extend-container" style="width: 100%; display: none; flex-direction: column; gap: 4px; margin-top: 5px;">
+                        <div id="permission-chance-text" style="font-size: 11px; color: var(--accent-color); text-align: center; font-weight: bold;">Шанс разрешения: 100%</div>
+                        <button style="background: #9d4edd; color: white; width: 100%; margin: 0; padding: 10px; font-weight: bold; font-size: 13px; border-radius: 4px;" onclick="extendStopPhase()">🛡️ ПРОДЛИТЬ ПАУЗУ (+15 сек)</button>
+                    </div>
+
+                    <!-- 100% ПРОВОКАЦИЯ СЛОМАННОГО/ПРИНУДИТЕЛЬНОГО ОРГАЗМА ПРИ СРЫВЕ -->
+                    <button style="background: var(--warning-color); color: white; width: 100%; margin-top: 5px; padding: 11px; font-weight: bold;" onclick="handleManualFail()">Я СОРВАЛСЯ</button>
+                    <button style="background: gold; color: black; width: 100%; margin-top: 0; padding: 8px; font-size: 12px; font-weight: bold;" onclick="endGameVictory()">ХАКЕР: ТЕСТ ПОБЕДЫ</button>
+                </div>
+
+                <div class="content-box">
+                    <div style="text-align: left; height: 35px; display: flex; justify-content: space-between; align-items: center;">
+                        <span id="page-indicator" style="color: #85929e; font-size: 13px;">Видео переключается каждую минуту автоматически</span>
+                        <button id="skip-video-btn" style="margin: 0; padding: 4px 10px; font-size: 12px; background: #9d4edd; color: white; font-weight: bold; border-radius: 4px; display: none;" onclick="skipVideo()">⏭️ Сменить видео</button>
+                    </div>
+                    
+                    <div class="viewer-box">
+                        <video id="gameplay-video" style="width: 100%; height: 100%; object-fit: contain; display: none;" autoplay loop muted controls></video>
+                        
+                        <div id="distracting-image-container" style="width: 100%; height: 100%; display: none; background: #0b0c10; justify-content: center; align-items: center; flex-direction: column; padding: 20px; box-sizing: border-box;">
+                            <img id="distracting-img" src="" style="max-width: 90%; max-height: 80%; border-radius: 8px; border: 2px solid var(--accent-color); object-fit: contain;">
+                            <div style="color: var(--accent-color); font-weight: bold; margin-top: 15px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 8px rgba(0,245,212,0.3);">🌲 ОСТАНОВИСЬ. СДЕЛАЙ ВДОХ И ПОСМОТРИ НА КРАСИВЫЙ СКАЙРИМСКИЙ ПЕЙЗАЖ 🌲</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ЭКРАН НАКАЗАНИЯ -->
+        <div id="screen-lockout" class="screen">
+            <h2 style="color: var(--warning-color); margin-bottom: 20px;">🔒 БЛОКИРОВКА СИМУЛЯТОРА</h2>
+            
+            <div style="max-width: 400px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 15px;">
+                <div class="character-stage">
+                    <img id="sindra-img-lockout" class="sindra-avatar" src="sindra_idle.png" alt="Синдра">
+                    
+                    <div class="rpg-speech-bubble" style="border-color: var(--warning-color);">
+                        <div class="rpg-speaker-name">🐉 Синдра</div>
+                        <div class="rpg-text" id="rpg-dialogue-text-lockout">...</div>
+                    </div>
+                </div>
+
+                <!-- ВЫЗОВ НА ИСКУПЛЕНИЕ ИНТЕРАКТИВНЫЙ -->
+                <div id="challenge-box" style="background: #111; border: 1px dashed var(--warning-color); padding: 15px; border-radius: 8px; width: 100%; box-sizing: border-box; text-align: left;">
+                    <h4 style="color: var(--warning-color); margin-top:0; margin-bottom: 5px;">🏋️ ВЫЗОВ НА ИСКУПЛЕНИЕ</h4>
+                    <p id="challenge-text" style="font-size: 12px; margin: 0 0 10px 0; line-height: 1.4; color: #aaa;">Синдра готова сократить время блокировки, если ты выполнишь её физический приказ.</p>
+                    <button id="accept-challenge-btn" style="background: var(--warning-color); color: white; padding: 6px 12px; font-size: 12px; margin: 0;" onclick="generateChallenge()">🐉 Просить о пощаде</button>
+                    
+                    <div id="active-challenge-container" style="display: none; flex-direction: column; gap: 8px;">
+                        <div id="active-challenge-desc" style="font-size: 13px; font-weight: bold; color: #fff; line-height: 1.4;"></div>
+                        <button style="background: var(--go-color); color: black; padding: 8px; font-size: 12px; font-weight: bold; margin: 0; width: 100%;" onclick="completeChallenge()">💪 Я ВЫПОЛНИЛ ПРИКАЗ!</button>
+                    </div>
+                </div>
+
+                <div style="background: #111; padding: 15px 30px; border-radius: 8px; width: 100%; box-sizing: border-box; border: 1px dashed var(--warning-color); text-align: center;">
+                    <span id="countdown-timer" style="font-size: 28px; font-weight: bold; color: var(--warning-color);">00:00:00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ЭКРАН ОТКАЗА (DENIED ORGASM) -->
+        <div id="screen-denied" class="screen">
+            <h2 id="denied-title" style="color: var(--warning-color); font-size: 32px; text-shadow: 0 0 15px rgba(255,77,109,0.4); margin-bottom: 15px;">❌ ОРГАЗМ ЗАПРЕЩЕН! (RUINED ORGASM)</h2>
+            <div style="max-width: 450px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 15px;">
+                <div class="character-stage">
+                    <img id="sindra-img-denied" class="sindra-avatar" src="sindra_idle.png" alt="Синдра">
+                    <div class="rpg-speech-bubble" style="border-color: var(--warning-color);">
+                        <div class="rpg-speaker-name">🐉 Синдра</div>
+                        <div class="rpg-text" id="rpg-dialogue-text-denied">...</div>
+                    </div>
+                </div>
+                
+                <!-- Дополнительный контейнер для принудительного изнурения на отказе -->
+                <div id="denied-forced-container" style="display: none; width: 100%; background: #111; padding: 15px; border-radius: 8px; border: 2px dashed var(--forced-color); box-sizing: border-box;">
+                    <h3 style="color: var(--forced-color); font-size: 16px; margin-bottom: 8px;">🚨 РЕЖИМ ПРИНУДИТЕЛЬНОГО ИЗНУРЕНИЯ 🚨</h3>
+                    <div id="denied-forced-timer" style="font-size: 24px; font-weight: bold; color: white; margin-bottom: 5px;">Осталось: 90 сек</div>
+                    <div id="denied-forced-progress" style="font-size: 14px; font-weight: bold; color: var(--forced-color); margin-bottom: 10px;">Волн разрядки сделано: 0 / 3</div>
+                    
+                    <div style="display: flex; justify-content: center; margin-bottom: 10px;">
+                        <div class="stroke-guide-panel">
+                            <div class="stroke-shaft">
+                                <div id="denied-forced-slider" class="stroke-cube"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="font-size: 11px; color: #85929e; margin-bottom: 10px;">Следуйте бешеному темпу слайдера! Кликайте кнопку ниже, чтобы форсировать разрядку!</div>
+                    <button id="denied-forced-charge-btn" style="background: white; color: black; font-size: 13px; padding: 8px 16px; width: 100%; margin: 0;" onclick="chargeForcedRuinShot()">💦 ЗАФИКСИРОВАТЬ ВОЛНУ 💦</button>
+                </div>
+
+                <div id="denied-normal-info" style="background: #111; padding: 15px 30px; border-radius: 8px; width: 100%; box-sizing: border-box; border: 1px dashed var(--warning-color); text-align: center;">
+                    <span id="denied-clicks-info" style="font-size: 14px; font-weight: bold; color: var(--warning-color); display: block; line-height: 1.4;"></span>
+                </div>
+
+                <!-- СОВЕТЫ СЕКСОЛОГОВ ПРИ ОБЛОМЕ (ДЛЯ ДЕНИЕД ЭКРАНА) -->
+                <button id="denied-advice-btn" onclick="toggleDeniedAdvicePanel()" style="background: var(--warning-color); color: white; margin-top: 10px; font-size: 13px; padding: 8px 16px; font-weight: bold; border-radius: 6px;">
+                    📋 Как снять застойную боль при запрете (Советы врачей)
+                </button>
+                <div id="denied-advice-panel" style="display: none; background: #0b0c10; border: 1px solid #2f3e46; border-radius: 8px; padding: 15px; text-align: left; margin-top: 10px; max-width: 400px; line-height: 1.5; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+                    <h4 style="color: var(--warning-color); margin-top: 0; margin-bottom: 8px; font-size: 14px; text-transform: uppercase;">🩸 СИНДРОМ ТЯЖЕЛОГО ТАЗА («СИНИЕ ЯИЧКИ»)</h4>
+                    <p style="font-size: 11px; color: #85929e; margin-bottom: 10px;">
+                        Внезапное прекращение стимуляции на пике эджинга без разрядки оставляет артериальную кровь зажатой в сосудах малого таза. Врачи советуют:
+                    </p>
+                    <ul style="font-size: 11px; color: #c5c6c7; padding-left: 15px; display: flex; flex-direction: column; gap: 8px; margin: 0;">
+                        <li><strong>1. Прохладный компресс:</strong> Слегка прохладный душ снижает приток крови и существенно уменьшает тупую ноющую боль [1].</li>
+                        <li><strong>2. Кардио-активность:</strong> Сделайте 30 легких приседаний. Мозг перенаправит кровь из таза к работающим мышцам ног.</li>
+                        <li><strong>3. Отвлечение и дыхание:</strong> Лягте на спину, делайте глубокие вдохи. Боль полностью утихнет через 1-2 часа.</li>
+                        <li><strong>4. Никаких судорожных попыток:</strong> Не пытайтесь стимулировать себя снова — это усугубит отек сосудов.</li>
+                    </ul>
+                </div>
+
+                <button id="denied-exit-btn" style="background: var(--warning-color); color: white;" onclick="registerFail()">ОСТУДИТЬСЯ (БАН 6 ЧАСОВ)</button>
+            </div>
+        </div>
+
+        <!-- ПОБЕДА -->
+        <div id="screen-victory" class="screen">
+            <h2 id="victory-title" style="color: #00f5d4; font-size: 32px; text-shadow: 0 0 15px rgba(0,245,212,0.4);">🏆 МАРАФОН ЗАВЕРШЕН С ПОБЕДОЙ!</h2>
+            <p id="victory-desc" style="font-size: 16px; color: #aaa; margin-bottom: 5px;"></p>
+            
+            <!-- Заголовок, меняющийся при принудительном оргазме -->
+            <h1 id="victory-action-header" style="color: #ff4d6d; font-size: 36px; margin: 10px 0; text-shadow: 0 0 10px rgba(255,77,109,0.5);">💦 КОНЧАТЬ СЮДА! 💦</h1>
+            
+            <!-- Интерактивная Палочка фрикций при ПОБЕДЕ (Показывает серию движений под строгим контролем) -->
+            <div id="victory-stroke-panel" style="background: #0b0c10; padding: 15px; border: 2px solid var(--accent-color); border-radius: 10px; margin-bottom: 15px; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <div id="victory-stroke-instruction" style="font-size: 13px; font-weight: bold; color: var(--accent-color); text-transform: uppercase; letter-spacing: 1px;">Приготовиться к разрядке...</div>
+                <div class="stroke-guide-panel" style="height: 120px; width: 80px; background: #111;">
+                    <div class="stroke-shaft" style="height: 100px;">
+                        <div id="victory-stroke-slider" class="stroke-cube"></div>
+                    </div>
+                </div>
+                <div style="font-size: 11px; color: #85929e;">Повторяйте движения белого куба перед каждым выстрелом для максимального удовольствия!</div>
+            </div>
+
+            <!-- Контейнер для принудительного оргазма на победе -->
+            <div id="victory-forced-container" style="display: none; background: #111; padding: 15px; border-radius: 8px; border: 2px dashed var(--forced-color); margin-bottom: 15px;">
+                <h3 style="color: var(--forced-color); font-size: 18px; margin-bottom: 5px; text-transform: uppercase;">🚨 СИНДРА ТРЕБУЕТ ВТОРОЙ ПРИНУДИТЕЛЬНЫЙ ОРГАЗМ! 🚨</h3>
+                <div id="victory-forced-timer" style="font-size: 26px; font-weight: bold; color: #ff4d6d; text-shadow: 0 0 8px rgba(255,77,109,0.5);">ОСТАЛОСЬ: 60 СЕК</div>
+                <p style="font-size: 12px; color: #aaa; margin: 5px 0 10px 0;">Твоё тело изнурено, но дракоша в беспамятстве требует выжать еще порцию! Кликай в такт безумного слайдера!</p>
+                <div style="display: flex; justify-content: center; margin-bottom: 10px;">
+                    <div class="stroke-guide-panel">
+                        <div class="stroke-shaft">
+                            <div id="victory-forced-slider" class="stroke-cube"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="viewer-box" style="height: 580px; margin-top: 15px; position: relative;">
+                <img id="victory-image" style="width: 100%; height: 100%; object-fit: contain; display: block;" src="" alt="Твоя награда">
+                <canvas id="semen-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none;"></canvas>
+            </div>
+
+            <!-- ИНТЕРАКТИВНОЕ СЕМЯИЗВЕРЖЕНИЕ -->
+            <div id="victory-controls" style="margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 100%; max-width: 600px; margin-left: auto; margin-right: auto;">
+                <div id="victory-shots-count" style="font-size: 14px; font-weight: bold; color: var(--accent-color);">Струй выпущено: 0 / 5</div>
+                <button id="shoot-semen-btn" style="background: #fff; color: #000; font-size: 18px; padding: 12px 24px; font-weight: bold; width: 100%; border-radius: 8px; box-shadow: 0 0 15px #fff;" onclick="shootSemen()">💦 ВЫСТРЕЛ СЕМЕНЕМ (КОНЧИТЬ) 💦</button>
+                <button id="victory-exit-btn" style="display: none; background: var(--accent-color); color: #000; font-size: 16px; padding: 12px 24px; font-weight: bold; width: 100%;" onclick="returnToMenu()">🐉 Вернуться в меню</button>
+            </div>
+
+            <button id="victory-advice-btn" onclick="toggleAdvicePanel()" style="background: #9d4edd; color: white; margin-top: 15px; font-size: 14px; padding: 10px 20px; border-radius: 6px; font-weight: bold;">
+                📋 Что делать дальше? Как не впасть в апатию (Советы сексологов)
+            </button>
+
+            <div id="advice-panel" style="display: none; background: #0b0c10; border: 1px solid #2f3e46; border-radius: 8px; padding: 20px; text-align: left; margin-top: 15px; max-width: 800px; margin-left: auto; margin-right: auto; line-height: 1.5; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+                <h3 style="color: var(--accent-color); border-bottom: 1px solid #2f3e46; padding-bottom: 8px; margin-top: 0; font-size: 18px;">🐉 ПОСЛЕМАРАФОНСКАЯ РЕАБИЛИТАЦИЯ ОТ СИНДРЫ</h3>
+                <ol style="font-size: 13px; color: #c5c6c7; padding-left: 20px; display: flex; flex-direction: column; gap: 12px; margin: 0;">
+                    <li>
+                        <strong style="color: var(--warning-color);">1. Быстрая гигиена и утилизация (Душ vs Ванная):</strong><br>
+                        * <strong>Если вы в душе (КРИТИЧЕСКАЯ ОШИБКА):</strong> Никогда не смывайте сперму горячей водой! Сперма состоит из белка, который сворачивается при температуре выше 40°C. Горячая вода превратит её в липкие резиновые хлопья, которые забьют слив. <strong>Смывать сперму в душе нужно строго холодной водой!</strong><br>
+                        * <strong>Если вы в комнате:</strong> Используйте сухие или влажные салфетки, утилизируйте их в ведро. После этого вымойте руки.
+                    </li>
+                    <li>
+                        <strong style="color: var(--accent-color);">2. Восстановление водного баланса (Гидратация):</strong><br>
+                        Выпейте большой стакан прохладной чистой воды. Сексуальная нагрузка ускоряет дыхание и метаболизм.
+                    </li>
+                    <li>
+                        <strong style="color: var(--go-color);">3. Дофаминовый детокс (Никаких быстрых дофаминов первые 2 часа!):</strong><br>
+                        Не листайте соцсети, не играйте в видеоигры сразу после финала. Дайте истощенным дофаминовым рецепторам мозга плавно прийти в норму.
+                    </li>
+                    <li>
+                        <strong style="color: #ff9f1c;">4. Профилактика послеоргазменного уныния:</strong><br>
+                        Резкий гормональный спад может вызывать грусть (выброс пролактина). Лягте поудобнее, сделайте глубокие вдохи животом.
+                    </li>
+                </ol>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО ГАЙДОВ -->
+    <div id="guides-modal" class="modal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0; color: var(--accent-color);">📖 Справочник эджера</h3>
+                <span style="cursor: pointer; font-size: 20px; font-weight: bold;" onclick="closeGuidesModal()">&times;</span>
+            </div>
+            
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="switchGuideTab('tab-zones', this)">🚥 Зоны Эджинга</button>
+                <button class="tab-btn" onclick="switchGuideTab('tab-ruined', this)">❌ Сломанный оргазм</button>
+                <button class="tab-btn" onclick="switchGuideTab('tab-forced', this)">⚡ Принудительный оргазм</button>
+            </div>
+
+            <!-- Вкладка 1: Зоны эджинга -->
+            <div id="tab-zones" class="tab-content active">
+                <h4 style="color: var(--go-color); margin-bottom: 5px;">Цветовая шкала контроля</h4>
+                <p>Эджинг делится на условные три зоны возбуждения, которые нужно научиться различать:</p>
+                <ul style="padding-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+                    <li><strong>🟢 Зелёная зона (0-50% возбуждения):</strong> Легкий разгон. Пульс спокойный. Фрикции делаются в комфортном, медленном темпе. Здесь тело только привыкает к стимуляции.</li>
+                    <li><strong>🟡 Жёлтая зона (51-85% возбуждения):</strong> Фаза плато. Возбуждение высокое, дыхание учащается, пенис максимально твердый. На этой фазе тренируется PC-мышца (лобково-копчиковая). Сжатие этой мышцы помогает удерживаться в этой зоне минутами [1].</li>
+                    <li><strong>🔴 Красная зона (86-99% возбуждения):</strong> Граница «точки невозврата». Максимальный пик. Задача на фазе «СТОП» — мгновенно убрать руки, сделать глубокий вдох и зажать PC-мышцу, удерживая этот пик без перехода в семяизвержение.</li>
+                </ul>
+            </div>
+
+            <!-- Вкладка 2: Сломанный оргазм -->
+            <div id="tab-ruined" class="tab-content">
+                <h4 style="color: var(--warning-color); margin-bottom: 5px;">Что такое Сломанный оргазм (Ruined Orgasm)?</h4>
+                <p><strong>Сломанный оргазм</strong> — это явление, при котором мышцы простаты начинают сокращаться (наступает физиологический спазм и эякуляция), но при этом полностью отсутствует психологическое удовольствие и дофаминовый пик.</p>
+                <h4 style="color: var(--accent-color); margin-top: 10px; margin-bottom: 5px;">Как сделать его самому себе:</h4>
+                <p>В момент, когда вы чувствуете, что неизбежно перешагнули «точку невозврата» в красной зоне и сокращения уже начались:</p>
+                <ol style="padding-left: 20px; display: flex; flex-direction: column; gap: 6px;">
+                    <li><strong>Мгновенно уберите руки.</strong> Полностью прекратите любые фрикции.</li>
+                    <li><strong>Зажмите лобково-копчиковую (PC) мышцу</strong> изо всех сил (как будто вы пытаетесь резко остановить мочеиспускание) [1].</li>
+                    <li>Сперма выделится вяло, без давления и напора, а мозг останется в состоянии дикого сексуального голода и фрустрации. Это жесткий инструмент тренировки желез и дисциплины.</li>
+                </ol>
+            </div>
+
+            <!-- Вкладка 3: Принудительный оргазм -->
+            <div id="tab-forced" class="tab-content">
+                <h4 style="color: var(--forced-color); margin-bottom: 5px;">Что такое Принудительный оргазм (Forced Orgasm)?</h4>
+                <p><strong>Принудительный оргазм</strong> — это сексуальная разрядка, совершаемая по приказу, вопреки усталости тела или нежеланию разума. В данном симуляторе этот режим может активироваться случайным образом в самом конце марафона.</p>
+                <p>Когда вы изнурены долгим сдерживанием, Синдра в беспамятстве заставит вас стимулировать гиперчувствительные нервные окончания снова, выжимая из вас соки под бешеный темп визуального куба. Это тренирует выносливость на пределе физических возможностей.</p>
+            </div>
+            
+            <div style="text-align: right; margin-top: 15px;">
+                <button style="background: var(--accent-color); color: black; padding: 6px 12px; font-size: 12px; margin: 0;" onclick="closeGuidesModal()">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BAN_HOURS = 6;
+        
+        // Вшитые по умолчанию ключи разработчика (Игрок играет сразу в один клик)
+        const DEFAULT_USER_ID = "6389460";
+        const DEFAULT_API_KEY = "50998e267ec33e1eb2b251809486f35299aa507ac1e4a273adeafb1d865751f7d6499608b7d83b280de937e3215022664f9aadaf75f6bb7660858852dc4df2c4";
+
+        const goPhrasesEasy = [
+            "Ты отлично справляешься. Начинаем медленный разгон, руки работают плавно.",
+            "Хороший темп, не торопись. Я верю, что ты сможешь пройти этот уровень.",
+            "Держи этот легкий ритм. Руки работают мягко, смазки не жалей."
+        ];
+        const stopPhrasesEasy = [
+            "Замри, мой милый. Дыши ровнее, я подожду. Ты отлично сдерживаешься.",
+            "Руки прочь, хороший мой. Это всего лишь короткая пауза, ты сможешь переждать её."
+        ];
+
+        const goPhrasesMedium = [
+            "Начинаем мерный разгон. Вливайся в темп и не вздумай ускоряться.",
+            "Держи этот ритм. Руки работают плавно, смазки не жалей.",
+            "Хорошо идешь. Разогревайся, пока я добрая и разрешаю."
+        ];
+        const stopPhrasesMedium = [
+            "РУКИ ПРОЧЬ! Быстро убрал ладони и глубоко задышал. Терпи!",
+            "СТОП! Замри, сожми зубы и удерживай этот пик. Не вздумай капнуть."
+        ];
+
+        const goPhrasesHard = [
+            "Двигайся быстрее! Чтобы выдержать полчаса, тебе нужно приучить тело к бешеным скоростям. Работай!",
+            "Твой пульс на пределе, но ты обязан терпеть! Вливайся в темп и не смей сбавлять обороты!",
+            "Смотри на экран и ускоряйся! Выжимай из своего жалкого прибора максимум, пока я не закричала стоп!"
+        ];
+        const stopPhrasesHard = [
+            "ЗАМРИ, НИЧТОЖЕСТВО! Не смей даже дышать в сторону своего стручка! Расслабь пресс и терпи этот ад!",
+            "РУКИ ЗА ГОЛОВУ! Если хоть одна капля упадет на ковер — ты будешь умолять меня о пощаде! Остужайся!"
+        ];
+
+        const menuPhrases = [
+            "Ну же, чего ты там топчешься у входа? Заходи в лагерь, я сегодня добрая... Почти.",
+            "Смотришь на меня? Мои аргонианки уже заскучали, да и я не против посмотреть на твои потуги...",
+            "Хватит мять пальцы на пороге. Выбирай уровень и покажи мне, есть ли у тебя хоть капля воли.",
+            "Я вижу твоё нетерпение. Готов поспорить, твоих сил не хватит даже на пять минут под моим контролем."
+        ];
+
+        const lockoutPhrases = [
+            "Ха-ха-ха! Жалкий человечишка! Твой ничтожный стручок лопнул от пары минут моего темпа? Твоё семя теперь размазано по рукам, а твоё мужское эго растоптано. Сиди и сопливь на таймер, скорострел хренов!",
+            "Ой, какая быстрая и дешёвая кончина... Твоя похотливая плоть сорвалась при первом же разгоне. Я забираю твой оргазм, а тебя оставляю с пустыми яйцами и диким стыдом на целых 6 часов. Страдай и не смей вытираться, размазня!",
+            "Ну что, обкончал свои пальчики раньше времени, ничтожество? Мои аргонианские девы покатываются со смеху над твоей жальной выносливостью. Твой лимит исчерпан, руки за голову и быстро смотреть на секундомер!",
+            "Какая жалкая разрядка! Твой прибор сработал как неисправный огнетушитель — пшик, и всё. Ты даже не заслуживаешь смотреть на моих соплеменниц. Сиди в углу и молись на цифры, куколд."
+        ];
+
+        const distractingImages = [
+            "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600", 
+            "https://images.unsplash.com/photo-1448375240586-882707db888b?w=600", 
+            "https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=600", 
+            "https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?w=600", 
+            "https://images.unsplash.com/photo-1473448912268-2022ce9509d8?w=600"  
+        ];
+
+        const challenges = [
+            { desc: "Отжаться от пола 25 раз! (Сократить бан на 30 минут)", penalty: 30 },
+            { desc: "Сделать 40 глубоких приседаний! (Сократить бан на 40 минут)", penalty: 40 },
+            { desc: "Удерживать планку ровно 1 минуту! (Сократить бан на 45 минут)", penalty: 45 },
+            { desc: "Пойти и умыться ледяной водой для охлаждения! (Сократить бан на 20 минут)", penalty: 20 },
+            { desc: "Сделать 30 прыжков 'Джеки-Джамп' на месте! (Сократить бан на 25 минут)", penalty: 25 }
+        ];
+
+        // Фазы и приказания фрикций при ПОБЕДЕ
+        const victoryStrokesSequence = [
+            { name: "Медленный глубокий разогрев (Всю длину)", speed: 1800, type: "full" },
+            { name: "Быстрые ласки самого кончика!", speed: 500, type: "top" },
+            { name: "Интенсивные проходы у основания!", speed: 900, type: "bottom" },
+            { name: "МАКСИМАЛЬНЫЙ НАПОР! ПРИГОТОВИТЬСЯ К ЗАЛПУ!", speed: 300, type: "full" }
+        ];
+        let victorySequenceInterval = null;
+        let victoryStrokeAnimId = null;
+
+        let chosenDiff = null, marathonTimeLeft = 0, phaseTimeLeft = 0, isGoPhase = true;
+        let permissionChance = 100, extendClicks = 0;
+        let state = { fails: 0, banUntil: null };
+        let currentChallenge = null;
+        
+        let gameInterval, phaseInterval, banInterval, metronomeInterval, lockoutPhraseInterval, videoSwapInterval, menuSeductiveInterval;
+        let strokeAnimId = null; 
+        
+        let videoPool = [];
+        let imagePool = [];
+        let permanentSplats = [];
+        let shotCount = 0;
+        let maxShotsLimit = 5; 
+        
+        // Новые переменные для Forced Orgasm
+        let isForcedMode = null; 
+        let forcedShotsNeeded = 3;
+        let forcedShotsDone = 0;
+        let forcedTimeLeft = 60;
+        let forcedInterval = null;
+
+        // Переменные VTuber-движка
+        let blinkTimeout = null;
+        let isBlinking = false;
+        let isTalking = false;
+        let mouthToggle = false;
+        let textTickerTimeout = null;
+        let mouthInterval = null;
+
+        // Переменные аудиодвижка
+        let audioCtx = null;
+        let bgMusic = null;
+        let isVoiceEnabled = true;
+
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.getVoices();
+            if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
+            }
+        }
+
+        window.onload = function() {
+            const savedState = localStorage.getItem('sindra_python_edition');
+            if (savedState) { try { state = JSON.parse(savedState); } catch(e) {} }
+            
+            // Загрузка тегов или дефолтные значения
+            const savedIncludeTags = localStorage.getItem('sindra_include_tags') || "argonian female dragon";
+            const savedExcludeTags = localStorage.getItem('sindra_exclude_tags') || "male";
+            document.getElementById('api-include-tags').value = savedIncludeTags;
+            document.getElementById('api-exclude-tags').value = savedExcludeTags;
+
+            // Загрузка личных API данных или дефолтные вшитые
+            const savedUserId = localStorage.getItem('sindra_api_userid') || DEFAULT_USER_ID;
+            const savedApiKey = localStorage.getItem('sindra_api_key') || DEFAULT_API_KEY;
+            document.getElementById('api-userid').value = savedUserId;
+            document.getElementById('api-key').value = savedApiKey;
+
+            if (state.banUntil && new Date().getTime() < state.banUntil) {
+                switchScreen('screen-lockout');
+                startBanTimer();
+            } else {
+                startMenuSeductionTimer();
+            }
+            startBlinkEngine();
+            preloadImages();
+            updateStartButtonState();
+        };
+
+        function preloadImages() {
+            const images = ['sindra_idle.png', 'sindra_blink.png', 'sindra_talk.png', 'sindra_talk_blink.png'];
+            images.forEach(src => {
+                const img = new Image();
+                img.src = src;
+            });
+        }
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            if (!bgMusic) {
+                bgMusic = new Audio("https://archive.org/download/wind-guide-you_202106/Secunda.mp3");
+                bgMusic.loop = true;
+                bgMusic.volume = 0.12;
+            }
+
+            if (bgMusic.paused) {
+                bgMusic.play().catch(e => console.log("Музыка ожидает активности"));
+            }
+        }
+
+        function toggleVoice() {
+            isVoiceEnabled = !isVoiceEnabled;
+            const btn = document.getElementById('voice-toggle-btn');
+            if (isVoiceEnabled) {
+                btn.innerText = "🔊 ГОЛОС: ВКЛ";
+                if ('speechSynthesis' in window) window.speechSynthesis.resume();
+            } else {
+                btn.innerText = "🔇 ГОЛОС: ВЫКЛ";
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            }
+        }
+
+        function speakSindra(text) {
+            if (!isVoiceEnabled) return;
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); 
+                const cleanText = text.replace(/🐉|🔒|🏆|💦|🚫|⚡|🌲|🔴|🟢|🟡|❌|🛡️|🏋️|💪/g, '');
+                const utterance = new SpeechSynthesisUtterance(cleanText);
+                
+                const voices = window.speechSynthesis.getVoices();
+                const ruVoice = voices.find(voice => voice.lang.startsWith('ru'));
+                if (ruVoice) { utterance.voice = ruVoice; }
+                
+                utterance.rate = 0.85;  
+                utterance.pitch = 0.82; 
+                
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function saveApiSettings() {
+            const userId = document.getElementById('api-userid').value.trim();
+            const apiKey = document.getElementById('api-key').value.trim();
+            
+            localStorage.setItem('sindra_api_userid', userId);
+            localStorage.setItem('sindra_api_key', apiKey);
+            updateStartButtonState();
+        }
+
+        function saveTagSettings() {
+            const includeTags = document.getElementById('api-include-tags').value.trim();
+            const excludeTags = document.getElementById('api-exclude-tags').value.trim();
+            
+            localStorage.setItem('sindra_include_tags', includeTags);
+            localStorage.setItem('sindra_exclude_tags', excludeTags);
+        }
+
+        function updateStartButtonState() {
+            const startBtn = document.getElementById('start-btn');
+            // Ключи теперь всегда есть по умолчанию, так что кнопка активна всегда при выборе сложности!
+            if (chosenDiff) {
+                startBtn.style.opacity = "1";
+                startBtn.style.pointerEvents = "auto";
+                startBtn.innerText = "Запустить марафон";
+            } else {
+                startBtn.style.opacity = "0.5";
+                startBtn.style.pointerEvents = "none";
+                startBtn.innerText = "Выберите сложность марафона выше";
+            }
+        }
+
+        // МОДАЛЬНОЕ ОКНО ГАЙДОВ
+        function openGuidesModal() {
+            initAudio();
+            document.getElementById('guides-modal').style.display = 'flex';
+        }
+        function closeGuidesModal() {
+            document.getElementById('guides-modal').style.display = 'none';
+        }
+        function switchGuideTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(tb => tb.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        // ИНТЕРАКТИВНЫЙ STROKE GUIDE С КУБОМ
+        function animateStrokeGuide(sliderId, speedMs, amplitudeType) {
+            cancelAnimationFrame(strokeAnimId);
+            
+            let minPercent = 5;
+            let maxPercent = 95;
+            if (amplitudeType === 'top') { 
+                minPercent = 60;
+                maxPercent = 95;
+            } else if (amplitudeType === 'bottom') { 
+                minPercent = 5;
+                maxPercent = 40;
+            } 
+
+            const slider = document.getElementById(sliderId);
+            if (!slider) return;
+
+            function render(time) {
+                let duration = speedMs || 1000;
+                let progress = (time % duration) / duration; 
+                let wave = Math.sin(progress * Math.PI * 2); 
+                let normalized = (wave + 1) / 2; 
+                
+                let currentPos = minPercent + normalized * (maxPercent - minPercent);
+                slider.style.bottom = `${currentPos}%`;
+                
+                strokeAnimId = requestAnimationFrame(render);
+            }
+            strokeAnimId = requestAnimationFrame(render);
+        }
+
+        // ОТДЕЛЬНАЯ АНИМАЦИЯ ДЛЯ ВЕЛИКОЛЕПНОЙ ПОСЛЕДОВАТЕЛЬНОСТИ ФРИКЦИЙ ПРИ ПОБЕДЕ
+        function animateVictoryStrokeGuide(speedMs, amplitudeType) {
+            cancelAnimationFrame(victoryStrokeAnimId);
+            
+            let minPercent = 5;
+            let maxPercent = 95;
+            if (amplitudeType === 'top') {
+                minPercent = 60;
+                maxPercent = 95;
+            } else if (amplitudeType === 'bottom') {
+                minPercent = 5;
+                maxPercent = 40;
+            }
+
+            const slider = document.getElementById('victory-stroke-slider');
+            if (!slider) return;
+
+            function render(time) {
+                let duration = speedMs || 1000;
+                let progress = (time % duration) / duration;
+                let wave = Math.sin(progress * Math.PI * 2);
+                let normalized = (wave + 1) / 2;
+                
+                let currentPos = minPercent + normalized * (maxPercent - minPercent);
+                slider.style.bottom = `${currentPos}%`;
+                
+                victoryStrokeAnimId = requestAnimationFrame(render);
+            }
+            victoryStrokeAnimId = requestAnimationFrame(render);
+        }
+
+        // ЗАПУСК ПОСЛЕДОВАТЕЛЬНОСТИ ПРИ ПОБЕДЕ (Смена каждые 6 секунд)
+        function startVictoryStrokeSequence() {
+            clearInterval(victorySequenceInterval);
+            let currentIdx = 0;
+
+            function runPhase() {
+                const phase = victoryStrokesSequence[currentIdx];
+                document.getElementById('victory-stroke-instruction').innerText = `Приказ Синдры: ${phase.name}`;
+                animateVictoryStrokeGuide(phase.speed, phase.type);
+                
+                currentIdx = (currentIdx + 1) % victoryStrokesSequence.length;
+            }
+
+            runPhase();
+            victorySequenceInterval = setInterval(runPhase, 6000);
+        }
+
+        function playUndertaleSpeechSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.type = 'triangle'; 
+            const baseFreq = 160; 
+            const freqRandomizer = baseFreq + (Math.random() * 30 - 15);
+            osc.frequency.setValueAtTime(freqRandomizer, audioCtx.currentTime);
+            
+            gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.06);
+        }
+
+        function playMetronomeClick() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
+            
+            gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.05);
+        }
+
+        function playSplatSound() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            
+            const bufferSize = audioCtx.sampleRate * 0.15; 
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+            
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(400, now);
+            filter.frequency.exponentialRampToValueAtTime(80, now + 0.12);
+            
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+            
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            noise.start(now);
+            noise.stop(now + 0.15);
+        }
+
+        function playVictoryFanfare() {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const notes = [261.63, 329.63, 392.00, 523.25]; 
+            
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, now + idx * 0.15);
+                
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.1, now + idx * 0.15 + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.15 + 0.6);
+                
+                osc.start(now + idx * 0.15);
+                osc.stop(now + idx * 0.15 + 0.7);
+            });
+        }
+
+        function updateSprite() {
+            const activeScreen = document.querySelector('.screen.active');
+            let imgId = 'sindra-img';
+            if (activeScreen && activeScreen.id === 'screen-lockout') {
+                imgId = 'sindra-img-lockout';
+            } else if (activeScreen && activeScreen.id === 'screen-menu') {
+                imgId = 'sindra-img-menu';
+            } else if (activeScreen && activeScreen.id === 'screen-denied') {
+                imgId = 'sindra-img-denied';
+            }
+            const img = document.getElementById(imgId);
+            if (!img) return;
+            updateSpriteForImg(img);
+        }
+
+        function updateSpriteForImg(img) {
+            if (!img) return;
+            const isMenu = (img.id === 'sindra-img-menu');
+            
+            if (isMenu) {
+                if (isTalking) {
+                    if (mouthToggle) {
+                        img.src = 'sindra_menu_talk_blink.png';
+                    } else {
+                        img.src = isBlinking ? 'sindra_menu_blink.png' : 'sindra_menu.png';
+                    }
+                } else {
+                    img.src = isBlinking ? 'sindra_menu_blink.png' : 'sindra_menu.png';
+                }
+            } else {
+                if (isTalking) {
+                    if (mouthToggle) {
+                        img.src = 'sindra_talk_blink.png';
+                    } else {
+                        img.src = isBlinking ? 'sindra_blink.png' : 'sindra_idle.png';
+                    }
+                } else {
+                    img.src = isBlinking ? 'sindra_blink.png' : 'sindra_idle.png';
+                }
+            }
+        }
+
+        function startBlinkEngine() {
+            clearTimeout(blinkTimeout);
+            const nextBlinkTime = Math.random() * (4500 - 2500) + 2500;
+            
+            blinkTimeout = setTimeout(() => {
+                isBlinking = true;
+                updateSprite();
+                
+                setTimeout(() => {
+                    isBlinking = false;
+                    updateSprite();
+                    startBlinkEngine();
+                }, 140);
+            }, nextBlinkTime);
+        }
+
+        function askSindraToSay(text, targetScreen = 'game') {
+            let dialogueBoxId = 'rpg-dialogue-text';
+            let imgId = 'sindra-img';
+            
+            if (targetScreen === 'lockout') {
+                dialogueBoxId = 'rpg-dialogue-text-lockout';
+                imgId = 'sindra-img-lockout';
+            } else if (targetScreen === 'menu') {
+                dialogueBoxId = 'rpg-dialogue-text-menu';
+                imgId = 'sindra-img-menu';
+            } else if (targetScreen === 'denied') {
+                dialogueBoxId = 'rpg-dialogue-text-denied';
+                imgId = 'sindra-img-denied';
+            }
+            
+            const dialogueBox = document.getElementById(dialogueBoxId);
+            const img = document.getElementById(imgId);
+            
+            if (!dialogueBox || !img) return;
+
+            clearTimeout(textTickerTimeout);
+            clearInterval(mouthInterval);
+            
+            img.classList.remove('jump');
+            void img.offsetWidth; 
+            img.classList.add('jump');
+
+            isTalking = true;
+            let currentIdx = 0;
+            dialogueBox.innerHTML = "";
+
+            speakSindra(text);
+
+            mouthInterval = setInterval(() => {
+                mouthToggle = !mouthToggle;
+                updateSpriteForImg(img);
+            }, 110);
+
+            function typeLetter() {
+                if (currentIdx < text.length) {
+                    const char = text.charAt(currentIdx);
+                    dialogueBox.innerHTML += char;
+                    currentIdx++;
+                    
+                    if (char !== ' ' && char !== '\n' && char !== '\t') {
+                        playUndertaleSpeechSound();
+                    }
+                    
+                    textTickerTimeout = setTimeout(typeLetter, Math.random() * (45 - 25) + 25);
+                } else {
+                    clearInterval(mouthInterval);
+                    isTalking = false;
+                    mouthToggle = false;
+                    updateSpriteForImg(img);
+                }
+            }
+            typeLetter();
+        }
+
+        function startMenuSeductionTimer() {
+            clearInterval(menuSeductiveInterval);
+            menuSeductiveInterval = setInterval(() => {
+                const activeScreen = document.querySelector('.screen.active');
+                if (activeScreen && activeScreen.id === 'screen-menu') {
+                    const randPhrase = menuPhrases[Math.floor(Math.random() * menuPhrases.length)];
+                    askSindraToSay(randPhrase, 'menu');
+                }
+            }, 60000); 
+        }
+
+        function selectDifficulty(diff, minutes, cardElement) {
+            initAudio();
+            document.querySelectorAll('.diff-card').forEach(c => c.classList.remove('selected'));
+            cardElement.classList.add('selected');
+            chosenDiff = diff;
+            marathonTimeLeft = minutes * 60;
+            updateStartButtonState();
+        }
+
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            updateSprite();
+        }
+
+        function startGame() {
+            initAudio();
+            clearInterval(menuSeductiveInterval); 
+            
+            // Загружаем API настройки (либо кастомные, либо вшитые)
+            const userId = document.getElementById('api-userid').value.trim() || DEFAULT_USER_ID;
+            const apiKey = document.getElementById('api-key').value.trim() || DEFAULT_API_KEY;
+            
+            // Динамический сбор тегов
+            const includeTags = document.getElementById('api-include-tags').value.trim();
+            const excludeTags = document.getElementById('api-exclude-tags').value.trim();
+            
+            // Формируем финальную строку поиска тегов
+            let finalTagsQuery = includeTags;
+            if (excludeTags) {
+                const excludedPrefixed = excludeTags.split(/\s+/).map(t => `-${t}`).join(' ');
+                finalTagsQuery += " " + excludedPrefixed;
+            }
+            const encodedTags = encodeURIComponent(finalTagsQuery);
+
+            const startBtn = document.getElementById('start-btn');
+            startBtn.innerText = "🐉 Поиск материалов...";
+            startBtn.style.opacity = "0.5";
+            startBtn.style.pointerEvents = "none";
+            
+            const url = `https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&tags=${encodedTags}&limit=200&user_id=${userId}&api_key=${apiKey}`;
+            
+            fetch(url)
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error("Запрос отклонен сервером. Проверьте правильность ключей.");
+                    }
+                    return res.json();
+                })
+                .then(data => {
+                    if (!Array.isArray(data)) {
+                        throw new Error("Неверный формат ответа API. Проверьте User ID и API Key.");
+                    }
+                    
+                    videoPool = data.filter(post => post.file_url.endsWith('.mp4') || post.file_url.endsWith('.webm'));
+                    imagePool = data.filter(post => !post.file_url.endsWith('.mp4') && !post.file_url.endsWith('.webm'));
+                    
+                    if (videoPool.length === 0) { videoPool = data; }
+                    if (imagePool.length === 0) { imagePool = data; }
+                    
+                    permissionChance = 100;
+                    extendClicks = 0;
+                    document.getElementById('permission-chance-text').innerText = `Шанс разрешения: 100%`;
+
+                    if (chosenDiff === 'easy') maxShotsLimit = 3;
+                    else if (chosenDiff === 'medium') maxShotsLimit = 5;
+                    else if (chosenDiff === 'hard') maxShotsLimit = 8;
+
+                    startBtn.innerText = "Запустить";
+                    switchScreen('screen-game');
+
+                    const indType = document.getElementById('indicator-type').value;
+                    if (indType === 'slider') {
+                        document.getElementById('tempo-circle').style.display = 'none';
+                        document.getElementById('stroke-guide-ui').style.display = 'flex';
+                    } else {
+                        document.getElementById('tempo-circle').style.display = 'block';
+                        document.getElementById('stroke-guide-ui').style.display = 'none';
+                    }
+
+                    startMarathonTimer();
+                    startVideoRotation();
+                    startNewPhase();
+                })
+                .catch(err => {
+                    alert("❌ Ошибка соединения API или неверные теги!\n\n" + err.message);
+                    startBtn.innerText = "Попробовать снова";
+                    updateStartButtonState();
+                });
+        }
+
+        function extendStopPhase() {
+            if (isGoPhase) return;
+            
+            extendClicks++;
+            phaseTimeLeft += 15;
+            
+            let penalty = 0.5;
+            if (chosenDiff === 'medium') penalty = 4;
+            else if (chosenDiff === 'hard') penalty = 5;
+            
+            permissionChance = Math.max(0, parseFloat((permissionChance - penalty).toFixed(1)));
+            document.getElementById('permission-chance-text').innerText = `Шанс разрешения: ${permissionChance}%`;
+            
+            playMetronomeClick();
+        }
+
+        function startVideoRotation() {
+            clearInterval(videoSwapInterval);
+            playRandomVideo();
+            
+            videoSwapInterval = setInterval(() => {
+                if (isGoPhase) {
+                    playRandomVideo();
+                }
+            }, 60000); 
+        }
+
+        function playRandomVideo() {
+            if (!videoPool || videoPool.length === 0) return;
+            const randPost = videoPool[Math.floor(Math.random() * videoPool.length)];
+            const videoEl = document.getElementById('gameplay-video');
+            videoEl.src = randPost.file_url;
+            
+            if (isGoPhase) {
+                videoEl.play();
+            } else {
+                videoEl.pause();
+            }
+        }
+
+        function skipVideo() {
+            if (!isGoPhase) return;
+            playRandomVideo();
+            startVideoRotation(); 
+        }
+
+        function showDistractingContent() {
+            const videoEl = document.getElementById('gameplay-video');
+            const distractContainer = document.getElementById('distracting-image-container');
+            const distractImg = document.getElementById('distracting-img');
+            
+            videoEl.pause();
+            videoEl.style.display = 'none';
+            document.getElementById('skip-video-btn').style.display = 'none'; 
+
+            const randImg = distractingImages[Math.floor(Math.random() * distractingImages.length)];
+            distractImg.src = randImg;
+            distractContainer.style.display = 'flex';
+
+            document.getElementById('extend-container').style.display = 'flex';
+
+            if (bgMusic) bgMusic.volume = 0.35;
+        }
+
+        function showVideoContent() {
+            const videoEl = document.getElementById('gameplay-video');
+            const distractContainer = document.getElementById('distracting-image-container');
+            
+            distractContainer.style.display = 'none';
+            videoEl.style.display = 'block';
+            videoEl.play();
+            
+            document.getElementById('skip-video-btn').style.display = 'block'; 
+            document.getElementById('extend-container').style.display = 'none';
+
+            if (bgMusic) bgMusic.volume = 0.08;
+        }
+
+        function startMarathonTimer() {
+            clearInterval(gameInterval);
+            gameInterval = setInterval(() => {
+                marathonTimeLeft--;
+                let mins = Math.floor(marathonTimeLeft / 60), secs = marathonTimeLeft % 60;
+                document.getElementById('marathon-timer').innerText = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+                if (marathonTimeLeft <= 0) { endGameVictory(); }
+            }, 1000);
+        }
+
+        function clearAllIntervals() {
+            clearInterval(gameInterval);
+            clearInterval(phaseInterval);
+            clearInterval(metronomeInterval);
+            clearInterval(banInterval);
+            clearInterval(lockoutPhraseInterval);
+            clearInterval(videoSwapInterval);
+            clearInterval(menuSeductiveInterval);
+            clearInterval(forcedInterval);
+            clearInterval(victorySequenceInterval);
+            clearTimeout(textTickerTimeout);
+            clearInterval(mouthInterval);
+            cancelAnimationFrame(strokeAnimId);
+            cancelAnimationFrame(victoryStrokeAnimId);
+        }
+
+        function startNewPhase() {
+            clearInterval(phaseInterval);
+            clearInterval(metronomeInterval);
+            cancelAnimationFrame(strokeAnimId);
+            
+            let minTime = 15, maxTime = 30;
+            if (chosenDiff === 'easy') { minTime = isGoPhase ? 12 : 25; maxTime = isGoPhase ? 18 : 45; } 
+            else if (chosenDiff === 'medium') { minTime = 20; maxTime = 35; } 
+            else { minTime = isGoPhase ? 40 : 10; maxTime = isGoPhase ? 70 : 18; }
+
+            phaseTimeLeft = Math.floor(Math.random() * (maxTime - minTime + 1)) + minTime;
+            const maxPhaseTime = phaseTimeLeft;
+
+            const circle = document.getElementById('tempo-circle'), label = document.getElementById('status-label');
+            const barFill = document.getElementById('phase-bar'), tempoText = document.getElementById('tempo-text');
+
+            if (isGoPhase) {
+                label.innerText = "ДРОЧИ"; label.style.color = "var(--go-color)";
+                circle.classList.remove('stop'); barFill.style.backgroundColor = "var(--go-color)";
+                
+                let speeds = [{ name: "Размеренно-медленный", dur: "2.0s", ms: 2000 }, { name: "Умеренно-средний", dur: "1.4s", ms: 1400 }];
+                if (chosenDiff !== 'easy') speeds.push({ name: "БЕШЕНЫЙ СУПЕР-РАЗГОН!", dur: "0.7s", ms: 700 });
+                
+                const currentSpeed = speeds[Math.floor(Math.random() * speeds.length)];
+                
+                const amplitudes = [
+                    { name: "Глубокие фрикции", type: "full" },
+                    { name: "Короткие у кончика", type: "top" },
+                    { name: "Работа у основания", type: "bottom" }
+                ];
+                const currentAmp = amplitudes[Math.floor(Math.random() * amplitudes.length)];
+                
+                tempoText.innerText = `Темп: ${currentSpeed.name} | ${currentAmp.name}`;
+                
+                circle.style.animation = 'none';
+                void circle.offsetWidth; 
+                circle.style.animation = `sindraPulse ${currentSpeed.dur} infinite ease-in-out`;
+
+                animateStrokeGuide('friction-slider', currentSpeed.ms, currentAmp.type);
+                
+                showVideoContent(); 
+                
+                playMetronomeClick();
+                metronomeInterval = setInterval(() => {
+                    playMetronomeClick();
+                }, currentSpeed.ms);
+                
+                const phrases = (chosenDiff === 'easy') ? goPhrasesEasy : ((chosenDiff === 'medium') ? goPhrasesMedium : goPhrasesHard);
+                askSindraToSay(phrases[Math.floor(Math.random() * phrases.length)], 'game');
+            } else {
+                label.innerText = "РУКИ ПРОЧЬ! СТОП"; label.style.color = "var(--warning-color)";
+                circle.classList.add('stop'); barFill.style.backgroundColor = "var(--warning-color)";
+                tempoText.innerText = "Запретная фаза...";
+                
+                showDistractingContent(); 
+                
+                const phrases = (chosenDiff === 'easy') ? stopPhrasesEasy : ((chosenDiff === 'medium') ? stopPhrasesMedium : stopPhrasesHard);
+                askSindraToSay(phrases[Math.floor(Math.random() * phrases.length)], 'game');
+            }
+
+            phaseInterval = setInterval(() => {
+                phaseTimeLeft--;
+                document.getElementById('phase-timer-text').innerText = `${phaseTimeLeft} сек`;
+                barFill.style.width = `${(phaseTimeLeft / maxPhaseTime) * 100}%`;
+                if (phaseTimeLeft <= 0) { isGoPhase = !isGoPhase; startNewPhase(); }
+            }, 1000);
+        }
+
+        // ВЫЗОВЫ НА ЭКРАНЕ БЛОКИРОВКИ
+        function generateChallenge() {
+            currentChallenge = challenges[Math.floor(Math.random() * challenges.length)];
+            document.getElementById('active-challenge-desc').innerText = `ПРИКАЗ СИНДРЫ: ${currentChallenge.desc}`;
+            document.getElementById('accept-challenge-btn').style.display = 'none';
+            document.getElementById('active-challenge-container').style.display = 'flex';
+            
+            askSindraToSay(`Так и быть. Если выполнишь мой приказ: ${currentChallenge.desc.split('!')[0]}, я спишу тебе часть штрафного времени. Не смей мне лгать!`, 'lockout');
+        }
+
+        function completeChallenge() {
+            if (!currentChallenge) return;
+            
+            const reductionMs = currentChallenge.penalty * 60 * 1000;
+            state.banUntil = Math.max(new Date().getTime(), state.banUntil - reductionMs);
+            localStorage.setItem('sindra_python_edition', JSON.stringify(state));
+            
+            const congrats = [
+                "Хм, ладно, верю на слово... Но если соврал — твоя карма сгниет. Я сократила тебе время!",
+                "Хорошо, хоть какая-то польза от твоих мышц. Я списала тебе штрафное время. Можешь передохнуть.",
+                "Надеюсь, твои ноги дрожат от приседаний так же, как твоя воля при эдже. Время бана сокращено!"
+            ];
+            
+            askSindraToSay(congrats[Math.floor(Math.random() * congrats.length)], 'lockout');
+            
+            document.getElementById('active-challenge-container').style.display = 'none';
+            document.getElementById('accept-challenge-btn').style.display = 'inline-block';
+            document.getElementById('accept-challenge-btn').innerText = "🐉 Просить о новой пощаде";
+        }
+
+        // МЕХАНИКА 100% НАКАЗАНИЯ ПРИ НАЖАТИИ «Я СОРВАЛСЯ»
+        function handleManualFail() {
+            clearAllIntervals();
+            document.getElementById('gameplay-video').pause();
+            if (bgMusic) bgMusic.volume = 0.12;
+            
+            // 50% на Принудительный оргазм до изнурения (3 раза), 50% на Сломанный оргазм (Denied)
+            const roll = Math.random();
+            if (roll < 0.5) {
+                triggerForcedRuinDefeat(999); 
+            } else {
+                triggerNormalDefeat(999); 
+            }
+        }
+
+        function registerFail(customBanHours = BAN_HOURS) {
+            clearAllIntervals();
+            document.getElementById('gameplay-video').pause();
+            
+            if (bgMusic) bgMusic.volume = 0.12;
+
+            state.fails = (state.fails || 0) + 1;
+            state.banUntil = new Date().getTime() + (customBanHours * 60 * 60 * 1000);
+            localStorage.setItem('sindra_python_edition', JSON.stringify(state));
+            
+            document.getElementById('active-challenge-container').style.display = 'none';
+            document.getElementById('accept-challenge-btn').style.display = 'inline-block';
+            document.getElementById('accept-challenge-btn').innerText = "🐉 Просить о пощаде";
+
+            switchScreen('screen-lockout'); 
+            startBanTimer();
+        }
+
+        function sayRandomLockoutPhrase() {
+            const phrase = lockoutPhrases[Math.floor(Math.random() * lockoutPhrases.length)];
+            askSindraToSay(phrase, 'lockout');
+        }
+
+        function startBanTimer() {
+            clearInterval(banInterval);
+            clearInterval(lockoutPhraseInterval);
+            
+            sayRandomLockoutPhrase();
+            
+            lockoutPhraseInterval = setInterval(() => {
+                sayRandomLockoutPhrase();
+            }, 30000);
+            
+            function update() {
+                const remain = state.banUntil - new Date().getTime();
+                if (remain <= 0) {
+                    clearAllIntervals();
+                    state.banUntil = null;
+                    localStorage.setItem('sindra_python_edition', JSON.stringify(state));
+                    switchScreen('screen-menu'); 
+                    startMenuSeductionTimer(); 
+                    return;
+                }
+                const h = Math.floor((remain % (1000*60*60*24)) / (1000*60*60));
+                const m = Math.floor((remain % (1000*60*60)) / (1000*60));
+                const s = Math.floor((remain % (1000*60)) / 1000);
+                
+                document.getElementById('countdown-timer').innerText = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+            }
+            update(); 
+            banInterval = setInterval(update, 1000);
+        }
+
+        function endGameVictory() {
+            clearAllIntervals();
+            document.getElementById('gameplay-video').pause();
+            document.getElementById('skip-video-btn').style.display = 'none'; 
+            
+            const roll = Math.floor(Math.random() * 100) + 1;
+            
+            if (roll <= permissionChance) {
+                // ПОБЕДА
+                const isForcedOrgasmVictoryRoll = Math.random() < 0.05; // 5% на Forced Orgasm на победе
+
+                if (isForcedOrgasmVictoryRoll) {
+                    triggerForcedOrgasmVictory(roll);
+                } else {
+                    triggerNormalVictory(roll);
+                }
+            } else {
+                // ОТКАЗ
+                const isForcedRuinRoll = Math.random() < 0.15; // 15% на принудительное изнурение
+                
+                if (isForcedRuinRoll) {
+                    triggerForcedRuinDefeat(roll);
+                } else {
+                    triggerNormalDefeat(roll);
+                }
+            }
+        }
+
+        // 1. ОБЫЧНАЯ ПОБЕДА
+        function triggerNormalVictory(roll) {
+            isForcedMode = null;
+            document.getElementById('victory-title').innerText = "🏆 МАРАФОН ЗАВЕРШЕН С ПОБЕДОЙ!";
+            document.getElementById('victory-action-header').innerText = "💦 КОНЧАТЬ СЮДА! 💦";
+            document.getElementById('victory-action-header').style.color = "#ff4d6d";
+            document.getElementById('victory-forced-container').style.display = "none";
+            document.getElementById('victory-stroke-panel').style.display = "flex";
+            document.getElementById('victory-advice-btn').style.display = "block";
+
+            setupVictoryScreen(roll);
+        }
+
+        // 2. FORCED ORGASM НА ПОБЕДЕ (5%)
+        function triggerForcedOrgasmVictory(roll) {
+            isForcedMode = 'victory';
+            forcedShotsDone = 0;
+            forcedShotsNeeded = 3;
+            forcedTimeLeft = 60;
+
+            document.getElementById('victory-title').innerText = "🚨 ПРИНУДИТЕЛЬНЫЙ ОРГАЗМ! (FORCED ORGASM) 🚨";
+            document.getElementById('victory-action-header').innerText = "⚡ БЫСТРО ВЫЖМИ ВТОРОЙ ОРГАЗМ! ⚡";
+            document.getElementById('victory-action-header').style.color = "var(--forced-color)";
+            document.getElementById('victory-forced-container').style.display = "block";
+            document.getElementById('victory-stroke-panel').style.display = "none"; 
+            document.getElementById('victory-advice-btn').style.display = "none";
+
+            setupVictoryScreen(roll);
+
+            animateStrokeGuide('victory-forced-slider', 400, 'full');
+
+            askSindraToSay("Ха-ха-ха! Ты думал, что отмучился? Твоё тело полностью в моей власти! Мой дикий драконий хвост требует больше твоего семени! Я запускаю режим ПРИНУДИТЕЛЬНОГО ОРГАЗМА! Тебе больно, чувствительность на пределе, но ты обязан кончить еще несколько раз! Быстро закликивай прибор под бешеный темп куба!", "victory");
+
+            clearInterval(forcedInterval);
+            forcedInterval = setInterval(() => {
+                forcedTimeLeft--;
+                document.getElementById('victory-forced-timer').innerText = `ОСТАЛОСЬ: ${forcedTimeLeft} СЕК`;
+                
+                if (forcedTimeLeft <= 0) {
+                    clearInterval(forcedInterval);
+                    cancelAnimationFrame(strokeAnimId);
+                    askSindraToSay("Ха-ха-ха! Ты сломался на принудительном оргазме! Твоё изнеженное тельце не выдержало перегрузки. За это ты отправляешься в жесткую блокировку!", "lockout");
+                    registerFail(12); 
+                }
+            }, 1000);
+        }
+
+        // Настройка экрана победы
+        function setupVictoryScreen(roll) {
+            if (bgMusic) {
+                bgMusic.pause();
+                bgMusic.src = "https://archive.org/download/wind-guide-you_202106/Distant%20Horizons.mp3";
+                bgMusic.loop = true;
+                bgMusic.volume = 0.2;
+                bgMusic.play().catch(e => console.log("Музыка ожидает активности"));
+            }
+
+            const desc = document.getElementById('victory-desc');
+            desc.innerText = `Успешно! Твой шанс составлял ${permissionChance}%, ролл кубика: ${roll}.`;
+            
+            switchScreen('screen-victory');
+
+            // Запускаем последовательность приказаний фрикций на победе
+            if (isForcedMode !== 'victory') {
+                startVictoryStrokeSequence();
+            }
+            
+            shotCount = 0;
+            permanentSplats = [];
+            document.getElementById('victory-shots-count').innerText = `Струй выпущено: 0 / ${maxShotsLimit}`;
+            document.getElementById('shoot-semen-btn').style.display = 'block';
+            document.getElementById('victory-exit-btn').style.display = 'none';
+
+            if (imagePool && imagePool.length > 0) {
+                const randImg = imagePool[Math.floor(Math.random() * imagePool.length)];
+                document.getElementById('victory-image').src = randImg.file_url;
+                
+                document.getElementById('victory-image').onload = function() {
+                    const canvas = document.getElementById('semen-canvas');
+                    canvas.width = document.getElementById('victory-image').clientWidth;
+                    canvas.height = document.getElementById('victory-image').clientHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height); 
+                };
+            } else {
+                document.getElementById('victory-image').src = "https://images.unsplash.com/photo-1590069261209-f8e9b8642343?w=600";
+            }
+        }
+
+        // 3. ОБЫЧНЫЙ ОТКАЗ
+        function triggerNormalDefeat(roll) {
+            isForcedMode = null;
+            document.getElementById('denied-title').innerText = "❌ ОРГАЗМ ЗАПРЕЩЕН! (RUINED ORGASM)";
+            document.getElementById('denied-forced-container').style.display = "none";
+            document.getElementById('denied-normal-info').style.display = "block";
+            document.getElementById('denied-advice-btn').style.display = "block";
+            document.getElementById('denied-exit-btn').style.display = "inline-block";
+
+            if (roll === 999) {
+                document.getElementById('denied-clicks-info').innerText = `Ты сорвался вручную! Твой оргазм полностью заблокирован.`;
+            } else {
+                document.getElementById('denied-clicks-info').innerText = `Кнопка продления была нажата целых ${extendClicks} раз!\nТвой шанс на разрядку упал до ${permissionChance}%, а кубик выбросил: ${roll}.`;
+            }
+            document.getElementById('denied-advice-panel').style.display = 'none';
+
+            switchScreen('screen-denied');
+            askSindraToSay(`Ха-ха-ха! Какая глупая и предсказуемая неудача! Твоя плоть полностью поддалась искушению. ОРГАЗМ ЗАПРЕЩЕН! Убирай руки и марш остужаться в душ на 6 часов, неудачник!`, "denied");
+        }
+
+        // 4. FORCED RUIN НА ОТКАЗЕ (15% или 50% при ручном срыве)
+        function triggerForcedRuinDefeat(roll) {
+            isForcedMode = 'ruin';
+            forcedShotsDone = 0;
+            forcedShotsNeeded = 3;
+            forcedTimeLeft = 90;
+
+            document.getElementById('denied-title').innerText = "🚨 ТРЕБУЕТСЯ ПРИНУДИТЕЛЬНОЕ ИЗНУРЕНИЕ! 🚨";
+            document.getElementById('denied-forced-container').style.display = "block";
+            document.getElementById('denied-normal-info').style.display = "none";
+            document.getElementById('denied-advice-btn').style.display = "none";
+            document.getElementById('denied-exit-btn').style.display = "none";
+
+            document.getElementById('denied-forced-progress').innerText = `Волн разрядки сделано: 0 / 3`;
+            document.getElementById('denied-forced-timer').innerText = `Осталось: 90 сек`;
+
+            switchScreen('screen-denied');
+            animateStrokeGuide('denied-forced-slider', 450, 'top'); // Бешеная стимуляция верхушки
+
+            askSindraToSay(`Оргазм запрещен! Но ты не отделаешься обычным сидением в углу. Твоя похоть требует сурового изнурения. Ты должен выдержать 3 принудительные волны стимуляции прямо сейчас, превозмогая застойную боль! Кликай кнопку "ЗАФИКСИРОВАТЬ ВОЛНУ" строго под движение куба! Сделай это, или получишь бан на 12 часов!`, "denied");
+
+            clearInterval(forcedInterval);
+            forcedInterval = setInterval(() => {
+                forcedTimeLeft--;
+                document.getElementById('denied-forced-timer').innerText = `Осталось: ${forcedTimeLeft} сек`;
+                
+                if (forcedTimeLeft <= 0) {
+                    clearInterval(forcedInterval);
+                    cancelAnimationFrame(strokeAnimId);
+                    askSindraToSay("Ха-ха-ха! Ты не справился с изнурением! Наказание удваивается. Увидимся через 12 часов!", "lockout");
+                    registerFail(12);
+                }
+            }, 1000);
+        }
+
+        // Фиксация волны на изнурении
+        function chargeForcedRuinShot() {
+            if (isForcedMode !== 'ruin') return;
+            playSplatSound();
+            forcedShotsDone++;
+            document.getElementById('denied-forced-progress').innerText = `Волн разрядки сделано: ${forcedShotsDone} / ${forcedShotsNeeded}`;
+
+            if (forcedShotsDone >= forcedShotsNeeded) {
+                clearInterval(forcedInterval);
+                cancelAnimationFrame(strokeAnimId);
+                askSindraToSay("Хм... Твои глаза полны слез и изнеможения, а прибор буквально дымится. Ты честно искупил свой грех сокращением бана! Остужайся, но блокировка снижена до 2 часов!", "denied");
+                
+                setTimeout(() => {
+                    registerFail(2);
+                }, 4000);
+            }
+        }
+
+        // МЕХАНИКА ВЫСТРЕЛА СЕМЕНЕМ (ФОКУС НА ЦЕНТР ЭКРАНА)
+        function shootSemen() {
+            if (isForcedMode === 'victory') {
+                if (forcedShotsDone >= forcedShotsNeeded) return;
+                playSplatSound();
+                forcedShotsDone++;
+                
+                const canvas = document.getElementById('semen-canvas');
+                const ctx = canvas.getContext('2d');
+                createHeavySplat(canvas, ctx);
+
+                if (forcedShotsDone >= forcedShotsNeeded) {
+                    clearInterval(forcedInterval);
+                    cancelAnimationFrame(strokeAnimId);
+                    document.getElementById('shoot-semen-btn').style.display = 'none';
+                    document.getElementById('victory-exit-btn').style.display = 'block';
+                    document.getElementById('victory-forced-container').style.display = 'none';
+                    document.getElementById('victory-advice-btn').style.display = 'block';
+
+                    playVictoryFanfare();
+                    askSindraToSay("Да-а-а... Какая мощная разрядка прямо на моё лицо! Весь экран залит твоим горячим семенем. Ты выжал из себя абсолютно всё! Ты честно заслужил этот финал. Абсолютная победа зафиксирована!", "victory");
+                }
+                return;
+            }
+
+            // Стандартный выстрел на победе
+            if (shotCount >= maxShotsLimit) return;
+            
+            playSplatSound();
+            
+            const canvas = document.getElementById('semen-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const startX = canvas.width / 2;
+            const startY = canvas.height;
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const targetX = centerX + (Math.random() * (canvas.width * 0.3) - (canvas.width * 0.15));
+            const targetY = centerY + (Math.random() * (canvas.height * 0.3) - (canvas.height * 0.15));
+            
+            shotCount++;
+            document.getElementById('victory-shots-count').innerText = `Струй выпущено: ${shotCount} / ${maxShotsLimit}`;
+            
+            let progress = 0;
+            function animateStream() {
+                if (progress < 1) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    drawAllPermanentSplats(ctx);
+                    
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+                    ctx.lineWidth = 8;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(startX, startY);
+                    
+                    const controlX = (startX + targetX) / 2;
+                    const controlY = Math.min(startY, targetY) - 70; 
+                    
+                    const currentX = (1 - progress) * (1 - progress) * startX + 2 * (1 - progress) * progress * controlX + progress * progress * targetX;
+                    const currentY = (1 - progress) * (1 - progress) * startY + 2 * (1 - progress) * progress * controlY + progress * progress * targetY;
+                    
+                    ctx.lineTo(currentX, currentY);
+                    ctx.stroke();
+                    
+                    progress += 0.08;
+                    requestAnimationFrame(animateStream);
+                } else {
+                    permanentSplats.push({
+                        x: targetX,
+                        y: targetY,
+                        size: Math.random() * 25 + 20,
+                        drops: [
+                            { dx: Math.random() * 30 - 15, dy: Math.random() * 40 + 10, size: Math.random() * 6 + 4 },
+                            { dx: Math.random() * 30 - 15, dy: Math.random() * 40 + 10, size: Math.random() * 6 + 4 }
+                        ]
+                    });
+                    
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    drawAllPermanentSplats(ctx);
+                    
+                    if (shotCount >= maxShotsLimit) {
+                        clearInterval(victorySequenceInterval);
+                        cancelAnimationFrame(victoryStrokeAnimId);
+                        document.getElementById('victory-stroke-panel').style.display = "none";
+                        document.getElementById('shoot-semen-btn').style.display = 'none';
+                        document.getElementById('victory-exit-btn').style.display = 'block';
+                        
+                        playVictoryFanfare();
+                        askSindraToSay("Да-а-а... Какая мощная разрядка прямо на моё лицо! Ты честно заслужил этот финал. Отдыхай, путник!", "victory");
+                    }
+                }
+            }
+            animateStream();
+        }
+
+        function createHeavySplat(canvas, ctx) {
+            const rx = Math.random() * (canvas.width * 0.6) + (canvas.width * 0.2);
+            const ry = Math.random() * (canvas.height * 0.6) + (canvas.height * 0.2);
+            permanentSplats.push({
+                x: rx,
+                y: ry,
+                size: Math.random() * 40 + 35,
+                drops: [
+                    { dx: Math.random() * 50 - 25, dy: Math.random() * 50 + 15, size: Math.random() * 10 + 6 },
+                    { dx: Math.random() * 50 - 25, dy: Math.random() * 50 + 15, size: Math.random() * 10 + 6 },
+                    { dx: Math.random() * 50 - 25, dy: Math.random() * 50 + 15, size: Math.random() * 10 + 6 }
+                ]
+            });
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawAllPermanentSplats(ctx);
+        }
+
+        function drawAllPermanentSplats(ctx) {
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+            ctx.shadowBlur = 4;
+            
+            permanentSplats.forEach(splat => {
+                ctx.beginPath();
+                ctx.arc(splat.x, splat.y, splat.size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                splat.drops.forEach(drop => {
+                    ctx.beginPath();
+                    ctx.arc(splat.x + drop.dx, splat.y + drop.dy, drop.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            });
+            
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+        }
+
+        function returnToMenu() {
+            clearAllIntervals();
+            switchScreen('screen-menu');
+            startMenuSeductionTimer();
+        }
+
+        function toggleAdvicePanel() {
+            const panel = document.getElementById('advice-panel');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                panel.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        function toggleEducationPanel() {
+            const panel = document.getElementById('education-panel');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                panel.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        function toggleDeniedAdvicePanel() {
+            const panel = document.getElementById('denied-advice-panel');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                panel.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
